@@ -18,6 +18,8 @@ cp heapsort.h gzstream.cpp gzstream.h progress.cpp progress.h safe_io.h ../../de
 cp operatingsystem.cpp operatingsystem.h timeutil.h my_assert.h         ../../decenttree
 cd ..
 cp -R zlib-1.2.7      ../decenttree
+cp -R lib             ../decenttree
+cp -R lib32           ../decenttree
 cp -R libmac          ../decenttree
 cp -R vectorclass     ../decenttree
 cp iqtree_config.h.in ../decenttree

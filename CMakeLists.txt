@@ -1,10 +1,10 @@
 #########################################################################
-# DecentTree cmake build definition
+# decenttree cmake build definition
 # Copyright (c) 2012-2020 Bui Quang Minh, Lam-Tung Nguyen, James Barbetti
 #########################################################################
 
-cmake_minimum_required(VERSION 2.8.10 FATAL_ERROR)
-project(decentTree)
+cmake_minimum_required(VERSION 3.18.0 FATAL_ERROR)
+project(decenttree)
 
 # Windows example usages:
 #------------------------
@@ -46,7 +46,6 @@ project(decentTree)
 # assuming you installed LLVM via Homebrew: brew install --with-toolchain llvm
 # cmake -G XCode -DCMAKE_XCODE_ATTRIBUTE_CC=/usr/local/opt/llvm/bin/clang -DCMAKE_XCODE_ATTRIBUTE_CXX=/usr/local/opt/llvm/bin/clang++ <source_dir>
 #
-#
 # Compile OpenMP version: cmake ....
 # Compile 32-bit version: cmake -DDECENTTREE_FLAGS=m32 ....
 # Compile static version: cmake -DDECENTTREE_FLAGS=static ....
@@ -60,12 +59,11 @@ project(decentTree)
 
 set(CMAKE_LEGACY_CYGWIN_WIN32 0)
 set(GCC_MIN_VERSION "4.8")
-add_definitions(-DDECENT_TREE)
 
 # The version number.
-set (decentTree_VERSION_MAJOR 1)
-set (decentTree_VERSION_MINOR 0)
-set (decentTree_VERSION_PATCH ".0")
+set (decenttree_VERSION_MAJOR 1)
+set (decenttree_VERSION_MINOR 0)
+set (decenttree_VERSION_PATCH ".0")
 
 if (CMAKE_C_COMPILER MATCHES "mpic")
     set(DECENTTREE_FLAGS "${DECENTTREE_FLAGS} mpi")
@@ -493,27 +491,6 @@ if (DECENTTREE_FLAGS MATCHES "libcxx")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
 endif()
 
-message("CMake build type: ${CMAKE_BUILD_TYPE}")
-
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
-elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
-elseif (CMAKE_BUILD_TYPE STREQUAL "Profile")
-    message("C flags         : ${CMAKE_C_FLAGS_PROFILE} ")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS_PROFILE} ")
-else()
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
-endif()
-
-message("LINKER flags    : ${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
-get_directory_property( COMPILER_DEFINITIONS DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS )
-message("Compiler defns  : ${COMPILER_DEFINITIONS}")
-
-
 if (GCC)
     set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline")
     set(CMAKE_C_FLAGS_DEBUG "-O0 -g -fno-inline-functions -fno-inline-functions-called-once -fno-default-inline -fno-inline")
@@ -545,12 +522,15 @@ configure_file (
   "${PROJECT_BINARY_DIR}/decenttree_config.h"
   )
 
+configure_file (
+"${PROJECT_SOURCE_DIR}/iqtree_config.h.in"
+"${PROJECT_BINARY_DIR}/iqtree_config.h"
+)
+
 # add the binary tree to the search path for include files
 # so that we will find decenttree_config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
-#zlib will be detected for appearance
-#include_directories("${PROJECT_BINARY_DIR}/zlib-1.2.7")
 
 if (NOT DECENTTREE_FLAGS MATCHES "nozlib")
     find_package(ZLIB)
@@ -572,11 +552,36 @@ endif(ZLIB_FOUND)
 add_subdirectory(vectorclass)
 LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}")
 
+add_compile_definitions(USE_PROGRESS_DISPLAY=1)
+add_compile_definitions(USE_VECTORCLASS_LIBRARY=1)
+add_compile_definitions(USE_GZSTREAM=1)
+add_compile_definitions(DECENT_TREE=1)
+
+message("CMake build type: ${CMAKE_BUILD_TYPE}")
+message("CMake source dir: ${CMAKE_SOURCE_DIR}")
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}")
+    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
+elseif (CMAKE_BUILD_TYPE STREQUAL "Profile")
+    message("C flags         : ${CMAKE_C_FLAGS_PROFILE} ")
+    message("CXX flags       : ${CMAKE_CXX_FLAGS_PROFILE} ")
+else()
+    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+endif()
+message("LINKER flags    : ${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+get_directory_property( COMPILER_DEFINITIONS DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS )
+message("Compiler defns  : ${COMPILER_DEFINITIONS}")
+message("Binary directory: ${PROJECT_BINARY_DIR}")
+
 ##################################################################
 # the main executable
 ##################################################################
 
-add_executable(decentTree
+add_executable(decenttree
     decenttree.cpp
     flatmatrix.cpp flatmatrix.h
     starttree.cpp starttree.h
@@ -592,9 +597,9 @@ add_executable(decentTree
     operatingsystem.cpp operatingsystem.h safe_io.h)
 
 if(ZLIB_FOUND)
-  target_link_libraries(decentTree ${ZLIB_LIBRARIES})
+  target_link_libraries(decenttree ${ZLIB_LIBRARIES})
 else(ZLIB_FOUND)
-  target_link_libraries(decentTree zlibstatic)
+  target_link_libraries(decenttree zlibstatic)
 endif(ZLIB_FOUND)
 
 add_executable(hod_tree
@@ -611,14 +616,9 @@ endif(Backtrace_FOUND)
 
 if (NOT DECENTTREE_FLAGS MATCHES "avx" AND NOT DECENTTREE_FLAGS MATCHES "fma")
     if (NOT DECENTTREE_FLAGS MATCHES "nosse")
-        set_target_properties(decentTree vectorclass PROPERTIES COMPILE_FLAGS "${SSE_FLAGS}")
+        set_target_properties(decenttree vectorclass PROPERTIES COMPILE_FLAGS "${SSE_FLAGS}")
     endif()
 endif()
-
-add_compile_definitions(USE_PROGRESS_DISPLAY=1)
-add_compile_definitions(USE_VECTORCLASS_LIBRARY=1)
-add_compile_definitions(USE_GZSTREAM=1)
-
 
 ##################################################################
 # setup linking flags
@@ -647,9 +647,9 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
         endif()
     elseif(CLANG AND WIN32)
         if (BINARY32)
-            target_link_libraries(decentTree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
+            target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
         else()
-            target_link_libraries(decentTree ${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll)
+            target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll)
         endif()
 #        set(THREAD_LIB "ompstatic")
     endif()
@@ -661,7 +661,7 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
 endif()
 
 # basic linking librararies
-target_link_libraries(decentTree vectorclass
+target_link_libraries(decenttree vectorclass
     ${PLATFORM_LIB} ${STD_LIB} ${THREAD_LIB} ${ATOMIC_LIB})
 
 # MPI libraries
@@ -673,7 +673,7 @@ endif()
 
 # setup the executable name
 ##################################################################
-set_target_properties(decentTree PROPERTIES OUTPUT_NAME "decentTree${EXE_SUFFIX}")
+set_target_properties(decenttree PROPERTIES OUTPUT_NAME "decenttree${EXE_SUFFIX}")
 
 # strip the release build
 if (NOT DECENTTREE_FLAGS MATCHES "no-strip" AND CMAKE_BUILD_TYPE STREQUAL "Release" AND (GCC OR CLANG) AND NOT APPLE) # strip is not necessary for MSVC
@@ -692,19 +692,19 @@ endif()
 
 if (WIN32)
     if (MSVC)
-        #ADD_CUSTOM_COMMAND(TARGET decentTree POST_BUILD COMMAND copy "${BINARY_DIR}/decentTree${EXE_SUFFIX}.exe" "${BINARY_DIR}/decentTree${EXE_SUFFIX}-click.exe")
+        #ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "${BINARY_DIR}/decenttree${EXE_SUFFIX}.exe" "${BINARY_DIR}/decentTree${EXE_SUFFIX}-click.exe")
     else()
-        ADD_CUSTOM_COMMAND(TARGET decentTree POST_BUILD COMMAND copy "decentTree${EXE_SUFFIX}.exe" "decentTree${EXE_SUFFIX}-click.exe")
+        ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "decenttree${EXE_SUFFIX}.exe" "decentTree${EXE_SUFFIX}-click.exe")
     endif()
 endif()
 
 ##############################################################
 # add the install targets
 ##############################################################
-install (TARGETS decentTree DESTINATION bin)
+install (TARGETS decenttree DESTINATION bin)
 
 if (WIN32 OR WIN64)
-    install (FILES "${BINARY_DIR}/decentTree${EXE_SUFFIX}-click.exe" DESTINATION bin)
+    install (FILES "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe" DESTINATION bin)
     if (NOT DECENTTREE_FLAGS MATCHES "single" AND MSVC)
         if (BINARY32)
             install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)

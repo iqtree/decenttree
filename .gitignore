@@ -1,1 +1,7 @@
 build/
+*.suo
+*.ipch
+/.vs
+/x64/Debug
+/x64/Release
+/decentTree.vcxproj.user
