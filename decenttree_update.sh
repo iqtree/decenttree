@@ -19,6 +19,8 @@ cp operatingsystem.cpp operatingsystem.h timeutil.h my_assert.h         ../../de
 cp parallel_mergesort.h parallel_sort.h                                 ../../decenttree
 cd ..
 cp -R zlib-1.2.7      ../decenttree
+cp -R lib             ../decenttree
+cp -R lib32           ../decenttree
 cp -R libmac          ../decenttree
 cp -R vectorclass     ../decenttree
 cp iqtree_config.h.in ../decenttree
