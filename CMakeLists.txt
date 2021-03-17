@@ -586,7 +586,8 @@ add_executable(decentTree
     clustertree.h distancematrix.h hammingdistance.h
     stitchup.cpp
     
-    heapsort.h
+    heapsort.h 
+    parallel_mergesort.h parallel_sort.h
     gzstream.cpp gzstream.h
     progress.cpp progress.h timeutil.h
     operatingsystem.cpp operatingsystem.h safe_io.h)
