@@ -612,7 +612,7 @@ add_executable(hod_tree
     
 if(Backtrace_FOUND)
   include_directories(${Backtrace_INCLUDE_DIR})
-  target_link_libraries(decentTree ${Backtrace_LIBRARY})
+  target_link_libraries(decenttree ${Backtrace_LIBRARY})
 endif(Backtrace_FOUND)
 
 if (NOT DECENTTREE_FLAGS MATCHES "avx" AND NOT DECENTTREE_FLAGS MATCHES "fma")
@@ -668,7 +668,7 @@ target_link_libraries(decenttree vectorclass
 # MPI libraries
 if (DECENTTREE_FLAGS MATCHES "mpi")
     if (NOT CMAKE_CXX_COMPILER MATCHES "mpi")
-        target_link_libraries(decentTree ${MPI_CXX_LIBRARIES})
+        target_link_libraries(decenttree ${MPI_CXX_LIBRARIES})
     endif()
 endif()
 
@@ -693,9 +693,9 @@ endif()
 
 if (WIN32)
     if (MSVC)
-        #ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "${BINARY_DIR}/decenttree${EXE_SUFFIX}.exe" "${BINARY_DIR}/decentTree${EXE_SUFFIX}-click.exe")
+        #ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "${BINARY_DIR}/decenttree${EXE_SUFFIX}.exe" "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe")
     else()
-        ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "decenttree${EXE_SUFFIX}.exe" "decentTree${EXE_SUFFIX}-click.exe")
+        ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "decenttree${EXE_SUFFIX}.exe" "decenttree${EXE_SUFFIX}-click.exe")
     endif()
 endif()
 
@@ -734,9 +734,9 @@ endif()
 include (InstallRequiredSystemLibraries)
 set (CPACK_RESOURCE_FILE_LICENSE
      "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE")
-set (CPACK_PACKAGE_VERSION_MAJOR "${decentTree_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${decentTree_VERSION_MINOR}")
-set (CPACK_PACKAGE_VERSION_PATCH "${decentTree_VERSION_PATCH}")
+set (CPACK_PACKAGE_VERSION_MAJOR "${decenttree_VERSION_MAJOR}")
+set (CPACK_PACKAGE_VERSION_MINOR "${decenttree_VERSION_MINOR}")
+set (CPACK_PACKAGE_VERSION_PATCH "${decenttree_VERSION_PATCH}")
 if(WIN32 OR APPLE)
   set(CPACK_GENERATOR "ZIP")
   set(CPACK_SOURCE_GENERATOR "ZIP")
