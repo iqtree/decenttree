@@ -16,7 +16,7 @@ cp bionj.cpp bionj2.cpp bionj2.h upgma.h nj.h rapidnj.h auctionmatrix.h ../../de
 cp clustertree.h distancematrix.h hammingdistance.h stitchup.cpp        ../../decenttree
 cp heapsort.h gzstream.cpp gzstream.h progress.cpp progress.h safe_io.h ../../decenttree
 cp operatingsystem.cpp operatingsystem.h timeutil.h my_assert.h         ../../decenttree
-cp parallel_mergesort.h parallel_sort.h                                 ../../decenttree
+cp parallel_mergesort.h parallel_sort.h vectortypes.h                   ../../decenttree
 cd ..
 cp -R zlib-1.2.7      ../decenttree
 cp -R lib             ../decenttree
