@@ -64,9 +64,20 @@
 //  Running time: O((n^2).ln(n)) in the worst case (dominated by: heap extraction).
 //                A little worse than O(n^2) in practice
 //                (dominated by: heap construction).
-//  Notes:        The union-find structure used here has a ~ n.ln(n)/ln(2)
+//  Notes:     1. The union-find structure used here has a ~ ln(n)
 //                worst case. And the time to remove the degree-2 nodes
-//                is linear in n.
+//                is proportional to n.ln(n) (it is dominated by the time
+//                taken by the... stitches.insert()... line).
+//             2. Both could be more efficient (union-find's running time
+//                could easily be lowered to n*A(n) where A is the inverse 
+//                of Ackermann's function), and the removal of the degree-2
+//                nodes can be done in time linear in n.  But given that other 
+//                steps take so much longer there is no need to make these steps 
+//                more efficient.
+//             3. The union-find structure used in NearestTaxonClusterJoiningMatrix
+//                is even less efficient (it is quadratic; ~ n*n/2 operations).
+//                Again, this doesn't cost much: there are other parts of the
+//                algorithm that take far longer.
 //
 //  Created by James Barbetti on 12-Aug-2020 (tree construction)
 //  and 24-Aug-20 (generating the newick file).
@@ -144,14 +155,14 @@ public:
 #define STAPLE_LEG  (0.5*(1.0-STAPLE_ARCH))
 
 template <class T=double> struct StitchupGraph {
-    std::vector<std::string>        leafNames;
-    std::set< Stitch<T> >           stitches;
-    std::vector< int >              taxonToSetNumber;
-    std::vector< int >              taxonToNodeNumber;
-    std::vector< T   >              taxonToDistance;
-    std::vector< std::vector<int> > setMembers;
-    int                             nodeCount;
-    bool                            silent;
+    StrVector                leafNames;
+    std::set< Stitch<T> >    stitches;
+    std::vector< int >       taxonToSetNumber;
+    std::vector< int >       taxonToNodeNumber;
+    std::vector< T   >       taxonToDistance;
+    std::vector< IntVector > setMembers;
+    int                      nodeCount;
+    bool                     silent;
     StitchupGraph() : nodeCount(0) {
     }
     void clear() {
@@ -452,11 +463,11 @@ public:
         return loadDistanceMatrixInto(distanceMatrixFilePath, true, *this);
     }
     virtual bool loadMatrix
-        ( const std::vector<std::string>& names, const double* matrix ) {
+        ( const StrVector& names, const double* matrix ) {
         //Assumptions: 2 < names.size(), all names distinct
         //  matrix is symmetric, with matrix[row*names.size()+col]
         //  containing the distance between taxon row and taxon col.
-        setSize(names.size());
+        setSize(static_cast<intptr_t>(names.size()));
         graph.clear();
         for (auto it = names.begin(); it != names.end(); ++it) {
             addCluster(*it);

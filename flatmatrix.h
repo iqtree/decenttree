@@ -26,37 +26,44 @@
 #include <stdlib.h> //for size_t
 #include <vector>   //for std::vector
 #include <string>   //for std::string
+#include "vectortypes.h" //for StrVector
 
 class FlatMatrix {
-private:
-    std::vector<std::string> sequenceNames;
-    size_t                   rowCount;
-    double*                  distanceMatrix;
-    bool                     borrowed;
+protected:
+    StrVector sequenceNames;
+    intptr_t  rowCount;
+    double*   distanceMatrix;
+    bool      borrowed;
 public:
     typedef double cell_type;
     FlatMatrix();
-    FlatMatrix(const std::vector<std::string>& sequence_names,
+    FlatMatrix(const StrVector& sequence_names,
                double* distance_data);
     virtual ~FlatMatrix();
     
-    const std::vector<std::string>& getSequenceNames() const;
+    const StrVector&   getSequenceNames() const;
     size_t             getMaxSeqNameLength()    const;
-    const std::string& sequenceName(size_t i)   const;
-    std::string&       sequenceName(size_t i);
-    void               setSize(size_t rows);
-    size_t             getSize();
+    const std::string& sequenceName(intptr_t i)   const;
+    std::string&       sequenceName(intptr_t i);
+    void               setSequenceName(intptr_t i, 
+                                       const std::string& new_name);
+    virtual void       setSize(intptr_t rows);
+    intptr_t           getSize();
     const double*      getDistanceMatrix()      const;
-    double             cell(size_t r, size_t c) const;
-    double&            cell(size_t r, size_t c);
+    double             cell(intptr_t r, intptr_t c) const;
+    double&            cell(intptr_t r, intptr_t c);
     void               addCluster(const std::string& clusterName);
     bool               writeToDistanceFile(const std::string& format,
                                            int precision,
                                            int compression_level,
                                            const std::string& file_name) const;
     template <class S>
-    void          writeDistancesToOpenFile(const std::string& format,
-                                           int precision, S &out) const;
+    void               writeDistancesToOpenFile(const std::string& format,
+                                                int precision, S &out) const;
+
+    virtual void appendRowDistancesToLine(intptr_t nseqs,    intptr_t seq1, 
+                                         intptr_t rowStart, intptr_t rowStop,
+                                         std::stringstream& line) const; 
 };
 
 #endif /* flatmatrix_h */

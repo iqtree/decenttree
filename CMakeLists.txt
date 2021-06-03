@@ -595,7 +595,8 @@ add_executable(decenttree
     parallel_mergesort.h parallel_sort.h
     gzstream.cpp gzstream.h
     progress.cpp progress.h timeutil.h
-    operatingsystem.cpp operatingsystem.h safe_io.h)
+    operatingsystem.cpp operatingsystem.h safe_io.h
+    vectortypes.cpp vectortypes.h)
 
 if(ZLIB_FOUND)
   target_link_libraries(decenttree ${ZLIB_LIBRARIES})

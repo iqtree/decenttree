@@ -25,7 +25,7 @@ namespace StartTree {
 
 extern void addBioNJ2009TreeBuilders(Factory& f);
 extern void addBioNJ2020TreeBuilders(Factory& f);
-extern void addStitchupTreeBuilders (Factory& f);
+//extern void addStitchupTreeBuilders (Factory& f);
 
 Factory::Factory() {
 }
@@ -47,7 +47,7 @@ Factory& Factory::getInstance() {
     if (instance.getBuilderCount()==0) {
         addBioNJ2009TreeBuilders(instance);
         addBioNJ2020TreeBuilders(instance);
-        addStitchupTreeBuilders(instance);
+        //addStitchupTreeBuilders(instance);
         BuilderInterface *bench = new BenchmarkingTreeBuilder(instance, "BENCHMARK", "Benchmark");
         instance.addBuilder(bench->getName(), bench);
     }
@@ -177,7 +177,7 @@ namespace {
 }
 
 bool BenchmarkingTreeBuilder::constructTreeInMemory
-( const std::vector<std::string> &sequenceNames
+( const StrVector &sequenceNames
 , const double *distanceMatrix
 , const std::string & newickTreeFilePath) {
     bool ok = false;
