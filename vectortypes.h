@@ -28,6 +28,11 @@ typedef std::vector<int> IntList;
 typedef std::vector<int> IntVector;
 
 /**
+        vector of intptr_t
+ */
+typedef std::vector<intptr_t> Int64Vector;
+
+/**
         vector of bool
  */
 
@@ -132,6 +137,8 @@ public:
     }
     bool contains(const char* find_me)        const;
     bool contains(const std::string& find_me) const;
+    std::string join(const char* separator)   const;
+    std::string join(const std::string& separator) const;
 };
 
 /**

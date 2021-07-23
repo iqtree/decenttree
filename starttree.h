@@ -44,7 +44,7 @@ namespace StartTree
             ( const StrVector &sequenceNames
              , const double *distanceMatrix
              , const std::string & newickTreeFilePath) = 0;
-        virtual const std::string& getName() = 0;
+        virtual const std::string& getName() const = 0;
         virtual const std::string& getDescription() = 0;
         virtual void beSilent() = 0;
         virtual void setPrecision(int precision) = 0;
@@ -99,13 +99,18 @@ namespace StartTree
             }
             builder.constructTree();
             double buildElapsed = getRealTime() - buildStart;
-            double buildCPU = getCPUTime() - buildStartCPU;
+            double buildCPU     = getCPUTime() - buildStartCPU;
             if (!silent) {
                 std::cout.precision(6);
                 std::cout << "Computing "
-                << name << " tree took " << buildElapsed << " sec"
-                << " (of wall-clock time) " << buildCPU << " sec"
-                << " (of CPU time)" << std::endl;
+                          << name << " tree took " 
+                          << buildElapsed << " sec (of wall-clock time) " 
+                          << buildCPU << " sec (of CPU time)" ;
+                if (0<buildElapsed) {
+                    double percentCPU = (buildCPU/buildElapsed)*100.0;
+                    std::cout << "(" << floor(percentCPU) << "%)";
+                }
+                std::cout << std::endl;
                 std::cout.precision(3);
             }
             return true;
@@ -118,7 +123,7 @@ namespace StartTree
         virtual void beSilent() {
             silent = true;
         }
-        virtual const std::string& getName() {
+        virtual const std::string& getName() const {
             return name;
         }
         virtual const std::string& getDescription() {
@@ -181,7 +186,7 @@ namespace StartTree
         int  precision;
     public:
         BenchmarkingTreeBuilder(Factory& f, const char* nameToUse, const char *descriptionToGive);
-        virtual const std::string& getName();
+        virtual const std::string& getName() const;
         virtual const std::string& getDescription();
         virtual bool isBenchmark() const;
         virtual bool constructTree
