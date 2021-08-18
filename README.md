@@ -14,17 +14,14 @@ The decenttree program implements multiple distance matrix tree reconstruction a
 - BioNJ (Gascuel, 1997), and 
 - Unweighted NJ (or UNJ) (Gascuel 2002).  
 
-The decenttree folder includes vectorized versions of NJ, BIONJ, and UNJ.  
-It includes optimized versions of UPGMA, NJ and BIONJ, all of which use the 
-same branch-and-bound techniques as RapidNJ (Simonsen, et al., 2008). 
-All the algorithms are implemented in header files, as template classes, allowing the caller 
+The decenttree folder includes vectorized versions of NJ, BIONJ, and UNJ. It also 
+includes optimized versions of UPGMA, NJ and BIONJ, all of which use the 
+same branch-and-bound techniques as RapidNJ (Simonsen, et al., 2008). All 
+the algorithms are implemented in header files, as template classes, allowing the caller 
 to choose between single or double precision, all implement a standard interface, accepting either 
 Phylip distance matrix files or in-memory matrices, and all are parallelized using OpenMP.  
 
-The vectorized versions make use of Agner Fog’s VectorClass library (https://www.agner.org/optimize/vectorclass.pdf).
-The command-line application allows the caller to select the algorithm and thread count.  
-The decenttree application also makes use of custom vectorized sequence comparison functions 
-(which also available via headers), that are called in parallel, to calculate distance matrices.
+The vectorized versions make use of Agner Fog’s VectorClass library (https://www.agner.org/optimize/vectorclass.pdf). The command-line application allows the caller to select the algorithm and thread count.  The decenttree application also makes use of custom vectorized sequence comparison functions (which also available via headers), that are called in parallel, to calculate distance matrices.
 
 The (header only) template classes can be used in other projects.
 (For full functionality it will be necessary to link with OpenMP - for parallelization - and 
@@ -36,8 +33,35 @@ compile with Agner Fog's VectorClass library - for vectorization).
 #<h2>Running decenttree</h2>
 
 #<h2>Command-line options</h2>
+| Option     | Argument               | Description |
+| ------     | --------               | ----------- |
+| -nt        | number (1 or more)     | Specify number of threads of execution (if built with OMP) |
+| -no-banner |                        | Suppress banner |
+| -v         |                        | Verbose output |
+| -q         |                        | Silent |
+| -fasta     | fasta input file path  | Supply path of a fasta format file containing an alignment |
+| -in        | dist input file path   | Supply path of a distance matrix file |
+| -dist      | dist input file path   | Supply path of a distance matrix file |
+| -not-dna   |                        | with -fasta, indicates input is (not) DNA |
+| -alphabet  | list of characters     | with -fasta, recognized nucleotide characters |
+| -unknown   | list of characters     | with -fasta, characters that indicate unknown |
+| -strip-name   | list of characters | Characters to strip from taxon names (case sensitive) |
+| -name-replace | list of characters | Characters to replace the stripped characters with |
+| -truncate-name-at | list of characters | Truncate taxon name on one of these characters |
+| -uncorrected | | with -fasta, do not apply Jukes-Cantor distance correction to calculated distances |
+| -filter | | with -fasta, Filter sequences that have zero distance |
+| -no-matrix  |  | with -fasta, save memory by *not* constructing the input matrix in memory |
+| -msa-out    | msa output file path             | with -fasta, write alignment in msa format |
+| -dist-out   | distance matrix output file path | use STDOUT to write it to standard output |
+| -out        | newick output file path          | use STDOUT to write it to standard output |
+| -std-out    |                                  | equivalent to -out STDOUT |
+| -no-out     |                                  | do not generate a newick output file |
+| -gz         |                                  | write outputs in gzip format |
+| -out-format | square, upper, lower | format for writing distance matrix output |
+| -f     | number 1-15     | Digits of precision, to write in the output      |
+| -c     | number 0-9      | Compression level to use when writing gzip files |
 
-#<h2>Compuling decenttree</h2>
+#<h2>Compiling decenttree</h2>
 
 #<h2>Code examples</h2>
 
