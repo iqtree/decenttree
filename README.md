@@ -1,11 +1,12 @@
 <h1>decenttree</h1>
-<h2>purpose</h2>
-decenttree is an application for generating phylogenetic trees
-(in newick format) from distance matrices, or alignments
-(in phylip formats), using well-known algorithms, 
-such as Neighbour Joining.
-
 <h2>Introduction</h2>
+decenttree is a cross-platform library, and stand-alone command-line application, 
+for generating phylogenetic trees (in newick format) from distance matrices
+(supplied in phylip distance matrix formats), or alignments (supplied in fasta format), 
+using well-known algorithms, such as Neighbour Joining.
+
+The distance matrix tree construction implementations in decenttree were originally
+developed as part of the IQTree2 application.
 
 <h2>Key Features</h2>
 The decenttree program implements multiple distance matrix tree reconstruction algorithms, in C++:
@@ -87,6 +88,16 @@ those distances).
 | AUCTION  | D, S, I     | Reverse auction cluster joining          | Experimental. Not recommended |
 
 <h2>Compiling decenttree</h2>
+The decenttree command-line application can be built under Windows (using Microsoft Visual Studio),
+on Macintosh, or on Linux (using GCC).  It hasn't been tested with other compilers.
+
+| Operating System | Hardware | For             |            |
+| ---------------- | -------- | --------------- | ---------- |
+| Macintosh        | 64-bit   | Parallelization | Link with libmac/libomp.a |
+| Unix/Linux       | 64-bit   | Parallelization | Link with lib/libomp.a or lib/libomp.a |
+| Unix/Linux.      | 32-bit   | Parallelization | Link with lib32/libomp.a |
+| Windows          | 64-bit   | Parallelization | Ensure that lib/libiomp5md.dll is in a folder in the PATH |
+| Windows          | 32-bit   | Parallelization | Ensure that lib32/libiomp5md.dll and lib32/libiomp5md.lib.dll are in the PATH |
 
 <h2>Code examples</h2>
 
@@ -95,6 +106,8 @@ those distances).
 <h2>API reference</h2>
 
 <h3>Distance Matrices and Distance Matrix Algorithms</h3>
+
+All of these classes are in the StartTree namespace.
 
 | File    | Class.                 | Dependencies | Function |
 | -----   | ----------             | ------------ | -------- |
@@ -107,6 +120,11 @@ those distances).
 | nj.h.     | BIONJMatrix          | NJMatrix     | Implementation of BIONJ (adds V matrix, for calculating branch lengths) |
 | nj.h.     | VectorizedMatrix     | NJMatrix *or* BIONJMatrix, vectorclass library | Vectorizes either NJMatrix of BIONJMatrix |
 | rapidnj.h | BoundingMatrix       | NJMatrix *or* BIONJMatrix, MirrorMergeSorter | Adds S and I matrices, for branch and bound, for NJ-R or BIONJ-R |
+| auctionmatrix.h | AuctionMatrix. | BoundingMatrix, NJMatrix | Implementation of a reverse-auction distance matrix algorithm |
+| starttree.h | BuilderInterface.  | std::string   | Interface that additional distance matrix algorithms must implement.  This is only a proof of concept. |
+| starttree.h, starttree.cpp  | Factory | BuilderInteface | Registry of distance matrix algorithms |
+| starttree.h, starttree.cpp  | Builder | BuilderInterface | Used to make an individual algorithm accessible via Factory::getBuilder |
+| starttree.h, starttree.cpp  | BenchmarkingTreeBuilder | BuilderInterface, Factory | Used for calling *all* for the algorithms registered via Factory::addBuilder |
 
 <h3>Sorting</h3>
 
@@ -119,9 +137,14 @@ those distances).
 | parallel_mergesort.h | MergeSorter         | ParallelSorter  | Mergesort |
 | parallel_mergesort.h | MirrorMergeSorter   | MergeSorter, ParallelMirrorSorterBase | Sorting rows of S and I using Mergesort |
 
-There is also a parallel_heapsort.h header available.
-
 <h3>Other</h3>
+
+| File                        | Class            | Dependencies                   | Function |
+| -----                       | -----            | ------------                   | -------- |
+| progress.h and progress.cpp | progress_display | std::string, std::fstream      | Displaying progress bars on the console |
+| gzstream.h and gzstream.cpp | igzstream        | zlib headers                   | Reading files in gzip format |
+| gzstream.h and gzstream.cpp | pigzstream       | zlib headers, display_progress | Displaying progress while reading files in gzip format |
+| gzstream.h and gzstream.cpp | ogzstream        | zlib headers                   | Writing files in gzip format |
 
 <h2>Acknowledgements and references</h2>
 
