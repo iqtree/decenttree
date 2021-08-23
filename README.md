@@ -6,7 +6,11 @@ for generating phylogenetic trees (in newick format) from distance matrices
 using well-known algorithms, such as Neighbour Joining.
 
 The distance matrix tree construction implementations in decenttree were originally
-developed as part of the IQTree2 application.
+developed as part of the IQTree2 application (formerly IQTree used a single-threaded
+implementation of BIONJ to generate initial phylogenetic trees; scaling issues meant 
+that was a performance bottleneck for generating phylogenetic trees for Covid-19 alignments,
+with more than a few thousand sequences. The classes in decenttree were developed to
+remove the bottleneck).
 
 <h2>Key Features</h2>
 The decenttree program implements multiple distance matrix tree reconstruction algorithms, in C++:
@@ -27,9 +31,6 @@ The vectorized versions make use of Agner Fog’s VectorClass library (https://w
 The (header only) template classes can be used in other projects.
 (For full functionality it will be necessary to link with OpenMP - for parallelization - and 
 compile with Agner Fog's VectorClass library - for vectorization).
-
-<h2>Build status</h2>
-
 
 <h2>Running decenttree</h2>
 
@@ -145,7 +146,9 @@ All of these classes are in the StartTree namespace.
 | gzstream.h and gzstream.cpp | igzstream        | zlib headers                   | Reading files in gzip format |
 | gzstream.h and gzstream.cpp | pigzstream       | zlib headers, display_progress | Displaying progress while reading files in gzip format |
 | gzstream.h and gzstream.cpp | ogzstream        | zlib headers                   | Writing files in gzip format |
-
+| hammingdistance.h           | (none)           | none                           | Free functions for calculating hamming distances |
+| hammingdistance.h           | (none)           | vectorclass libraries          | Free functions for calculating hamming distances |
+  
 <h2>Acknowledgements and references</h2>
 
 <h3>Distance Matrix Algorithms</h3>
@@ -174,7 +177,7 @@ All of these classes are in the StartTree namespace.
   by Martin Simonsen, Thomas Mailund, Christian N. S. Pedersen.
   From: Communications in Computer and Information Science
         (Biomedical Engineering Systems and Technologies:
-        3rd International Joint Conference, BIOSTEC 2010,
+        3rd International Joint Conference, BIOSTEC 2010,2
         Revised Selected Papers), volume 127, pages 334-344,
         Springer Verlag, 2011.
   See: https://birc.au.dk/software/rapidnj/.
@@ -193,10 +196,12 @@ All of these classes are in the StartTree namespace.
 - gzstream, C++ iostream classes wrapping the zlib compression library.
   Copyright (C) 2001  Deepak Bandyopadhyay, Lutz Kettner
 - The heapsort algorithm implemented in parallel_heapsort.h, is loosely 
-  based on Floyd's TreeSort3 [RF1964], which in turn was based on 
-  J.W.J.William's Heapsort [JW1964].
+  based on Floyd's TreeSort3 (Algorithm 245, Communications of the ACM,
+  Volume 7, Number 12, December 1964) which in turn was based on 
+  J.W.J.William's Heapsort (Algorithm 232, Communications of the aCM,
+  Volume 7, Number 6, June 1964).
 - The mergesort algorithm implemented in parallel_mergesort.h, is loosely 
-  based on Algorithm S (Straight Mergesort), from volume 2 of
+  based on Algorithm S (Straight Mergesort), from volume 3 of
   "The Art of Computer Programming", by Donald E. Knuth
   (only the rational arithmetic used to split partitions evenly
    is original).
@@ -205,5 +210,3 @@ All of these classes are in the StartTree namespace.
 - The progress bar functionality in progress.h and progess.cpp was
   originally developed for IQTree2 See: https://github.com/iqtree/iqtree2.
   
-  
-
