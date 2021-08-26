@@ -7,18 +7,15 @@
 #define USE_PROGRESS_DISPLAY    0 //If you linked in progress.cpp, this could be set to 1.
                                   //to get progress bars (not much point on small inputs!)
 #define USE_VECTORCLASS_LIBRARY 0 //For an input this small, vectorisation doesn't matter.
-#define DECENT_TREE             1 //Otherwise 
+#define DECENT_TREE             1 //Tells shared headers that decenttree, rather than
+                                  //iqtree2, is being built. 
 
-#include "distancematrix.h"	//for loadDistanceMatrixFromOpenFile
-#include "rapidnj.h"		//for RapidNJ
+#include <distancematrix.h>	//for loadDistanceMatrixFromOpenFile
+#include <rapidnj.h>		//for RapidNJ
 #include <sstream>          //for std::istringstream
 
 void example_1() {
-#ifdef USE_VECTORCLASS_LIBRARY	
-	StartTree::VectorNJ r;
-#else
 	StartTree::RapidNJ r;
-#endif
 
 	const char* input_string =
 		"17\n"

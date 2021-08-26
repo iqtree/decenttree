@@ -531,6 +531,7 @@ configure_file (
 # so that we will find decenttree_config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
+add_subdirectory(example)
 
 if (NOT DECENTTREE_FLAGS MATCHES "nozlib")
     find_package(ZLIB)
@@ -604,13 +605,6 @@ else(ZLIB_FOUND)
   target_link_libraries(decenttree zlibstatic)
 endif(ZLIB_FOUND)
 
-add_executable(hod_tree
-    headeronlydecenttree.cpp
-
-    upgma.h nj.h rapidnj.h auctionmatrix.h
-    clustertree.h distancematrix.h hammingdistance.h
-    heapsort.h timeutil.h)
-    
 if(Backtrace_FOUND)
   include_directories(${Backtrace_INCLUDE_DIR})
   target_link_libraries(decenttree ${Backtrace_LIBRARY})
