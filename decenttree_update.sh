@@ -13,8 +13,9 @@
 cd ../iqtree2/distancematrixtree
 cp decenttree.cpp flatmatrix.cpp flatmatrix.h starttree.cpp starttree.h ../../decenttree
 cp bionj.cpp bionj2.cpp bionj2.h upgma.h nj.h rapidnj.h auctionmatrix.h ../../decenttree
-cp clustertree.h distancematrix.h stitchup.cpp                          ../../decenttree
+cp clustertree.h distancematrix.h stitchup.cpp sequence.cpp sequence.h  ../../decenttree
 cd ../utils
+cp argument.cpp argument.h               ../../decenttree/utils
 cp gzstream.cpp gzstream.h heapsort.h    ../../decenttree/utils
 cp progress.cpp progress.h               ../../decenttree/utils
 cp operatingsystem.cpp operatingsystem.h ../../decenttree/utils
