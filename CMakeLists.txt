@@ -589,15 +589,16 @@ add_executable(decenttree
     bionj.cpp
     bionj2.cpp bionj2.h
     upgma.h nj.h rapidnj.h auctionmatrix.h
-    clustertree.h distancematrix.h hammingdistance.h
+    clustertree.h distancematrix.h 
     stitchup.cpp
     
-    heapsort.h 
-    parallel_mergesort.h parallel_sort.h
-    gzstream.cpp gzstream.h
-    progress.cpp progress.h timeutil.h
-    operatingsystem.cpp operatingsystem.h safe_io.h
-    vectortypes.cpp vectortypes.h)
+    utils/hammingdistance.h    utils/heapsort.h 
+    utils/timeutil.h           utils/safe_io.h
+    utils/parallel_mergesort.h utils/parallel_sort.h
+    utils/gzstream.cpp         utils/gzstream.h
+    utils/progress.cpp         utils/progress.h 
+    utils/operatingsystem.cpp  utils/operatingsystem.h
+    utils/vectortypes.cpp      utils/vectortypes.h)
 
 if(ZLIB_FOUND)
   target_link_libraries(decenttree ${ZLIB_LIBRARIES})

@@ -23,14 +23,14 @@
 #include <string>            //for std::string
 #include <iostream>          //for std::cout
 #include <math.h>            //for log
-#include "progress.h"        //for progress_display::setProgressDisplay()
+#include <utils/progress.h>        //for progress_display::setProgressDisplay()
+#include <utils/operatingsystem.h> //for getOSName
+#include <utils/hammingdistance.h> //for hammingDistance
 #include "starttree.h"       //for StartTree::Factory
-#include "operatingsystem.h" //for getOSName
 #include "flatmatrix.h"      //for FlatMatrix
 #include "distancematrix.h"  //for loadDistanceMatrixInto
-#include "hammingdistance.h" //for hammingDistance
 #if USE_GZSTREAM
-#include "gzstream.h"
+#include <utils/gzstream.h>
 #endif
 
 #define PROBLEM(x) if (1) problems << x << ".\n"; else 0
@@ -1149,10 +1149,11 @@ int obeyCommandLineOptions(DecentTreeOptions& options) {
     if (!options.isTreeConstructionSkipped) {
         if (algorithm==nullptr) {
             std::cerr << "Tree builder algorithm was unexpectedly null"
-                << " (internal logic error)." << std::endl;
+                      << " (internal logic error)." << std::endl;
             return 1;
         }
-        algorithm->setZippedOutput(options.isOutputZipped || endsWith(options.outputFilePath,".gz"));
+        algorithm->setZippedOutput(options.isOutputZipped || 
+                                   endsWith(options.outputFilePath,".gz"));
         if (options.beSilent) {
             algorithm->beSilent();
         }
@@ -1160,7 +1161,8 @@ int obeyCommandLineOptions(DecentTreeOptions& options) {
     }
     Sequences  sequences;
     FlatMatrix m;
-    bool succeeded = prepInput(options.alignmentFilePath, options.inputFilePath,
+    bool succeeded = prepInput(options.alignmentFilePath, 
+                               options.inputFilePath,
                                !algorithm->isBenchmark(),
                                options.distanceOutputFilePath,
                                sequences, options.isMatrixToBeLoaded, m);
