@@ -585,13 +585,16 @@ message("Binary directory: ${PROJECT_BINARY_DIR}")
 add_executable(decenttree
     decenttree.cpp
     flatmatrix.cpp flatmatrix.h
-    starttree.cpp starttree.h
+    sequence.cpp   sequence.h
+    starttree.cpp  starttree.h
     bionj.cpp
-    bionj2.cpp bionj2.h
-    upgma.h nj.h rapidnj.h auctionmatrix.h
-    clustertree.h distancematrix.h 
+    bionj2.cpp     bionj2.h
+    upgma.h        nj.h  
+    rapidnj.h      auctionmatrix.h
+    clustertree.h  distancematrix.h 
     stitchup.cpp
     
+    utils/argument.cpp
     utils/hammingdistance.h    utils/heapsort.h 
     utils/timeutil.h           utils/safe_io.h
     utils/parallel_mergesort.h utils/parallel_sort.h

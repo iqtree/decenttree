@@ -3,7 +3,12 @@
 decenttree is a cross-platform library, and stand-alone command-line application, 
 for generating phylogenetic trees (in newick format) from distance matrices
 (supplied in phylip distance matrix formats), or alignments (supplied in fasta format), 
-using well-known algorithms, such as Neighbour Joining.
+using well-known algorithms, such as 
+
+  * Neighbour Joining
+  * BIONJ
+  * UPGMA
+
 
 The distance matrix tree construction implementations in decenttree were originally
 developed as part of the IQTree2 application (formerly IQTree used a single-threaded
@@ -14,10 +19,11 @@ remove the bottleneck).
 
 <h2>Key Features</h2>
 The decenttree program implements multiple distance matrix tree reconstruction algorithms, in C++:
-- UPGMA (Sokal and Michener, 1958), 
-- Neighbor Joining (or NJ) (Saitou and Nei 1987), 
-- BioNJ (Gascuel, 1997), and 
-- Unweighted NJ (or UNJ) (Gascuel 2002).  
+
+ * UPGMA (Sokal and Michener, 1958), 
+ * Neighbor Joining (or NJ) (Saitou and Nei 1987), 
+ * BioNJ (Gascuel, 1997), and 
+ * Unweighted NJ (or UNJ) (Gascuel 2002).  
 
 The decenttree folder includes vectorized versions of NJ, BIONJ, and UNJ. It also 
 includes optimized versions of UPGMA, NJ and BIONJ, all of which use the 
@@ -127,6 +133,14 @@ All of these classes are in the StartTree namespace.
 | starttree.h, starttree.cpp  | Builder | BuilderInterface | Used to make an individual algorithm accessible via Factory::getBuilder |
 | starttree.h, starttree.cpp  | BenchmarkingTreeBuilder | BuilderInterface, Factory | Used for calling *all* for the algorithms registered via Factory::addBuilder |
 
+<h3>Alignments</h3>
+
+| File    | Class.                 | Dependencies | Function |
+| -----   | ----------             | ------------ | -------- |
+| sequence.h, sequence.cpp | Sequence | none | Recording sequence name and sites|
+| sequence.h, sequence.cpp | Sequences | Sequence | Loading sequence alignments from fast or phylip files.|
+| sequence.h, sequence.cpp | SequenceLoader | Sequences | Loading sequence alignments, calculating hamming (or Jukes-Cantor) distances, loading distance matrices and writing distance matrices in Phylip format.|
+
 <h3>Sorting</h3>
 
 | File    | Class.                 | Dependencies | Function |
@@ -142,12 +156,13 @@ All of these classes are in the StartTree namespace.
 
 | File                        | Class            | Dependencies                   | Function |
 | -----                       | -----            | ------------                   | -------- |
-| progress.h and progress.cpp | progress_display | std::string, std::fstream      | Displaying progress bars on the console |
-| gzstream.h and gzstream.cpp | igzstream        | zlib headers                   | Reading files in gzip format |
-| gzstream.h and gzstream.cpp | pigzstream       | zlib headers, display_progress | Displaying progress while reading files in gzip format |
-| gzstream.h and gzstream.cpp | ogzstream        | zlib headers                   | Writing files in gzip format |
-| hammingdistance.h           | (none)           | none                           | Free functions for calculating hamming distances |
-| hammingdistance.h           | (none)           | vectorclass libraries          | Free functions for calculating hamming distances |
+| utils/argument.h and argument.cpp | Argument, IntArgument, StringArgument, SwitchArgument | (none) | Parsing command-line arguments |
+| utils/progress.h and progress.cpp | progress_display | std::string, std::fstream      | Displaying progress bars on the console |
+| utils/gzstream.h and gzstream.cpp | igzstream        | zlib headers                   | Reading files in gzip format |
+| utils/gzstream.h and gzstream.cpp | pigzstream       | zlib headers, display_progress | Displaying progress while reading files in gzip format |
+| utils/gzstream.h and gzstream.cpp | ogzstream        | zlib headers                   | Writing files in gzip format |
+| utils/hammingdistance.h           | (none)           | none                           | Free functions for calculating hamming distances |
+| utils/hammingdistance.h           | (none)           | vectorclass libraries          | Free functions for calculating hamming distances |
   
 <h2>Acknowledgements and references</h2>
 
