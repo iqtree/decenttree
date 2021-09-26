@@ -59,12 +59,12 @@ bool processSequenceLine(const std::vector<int> &in_alphabet,
             sequence.append(1, c);
         }
         else if (isOpeningBracket(c)) {
-            while (*it != ')' && *it != '}' && it != line.end()) {
+            while (it != line.end() && *it != ')' && *it != '}') {
                 it++;
             }
             if (it == line.end()) {
                 std::cerr << "Line " << line_num 
-                    << ": No matching close-bracket ) or } found";
+                          << ": No matching close-bracket ) or } found";
                 return false;
             }
             sequence.append(1, unknown_char);
@@ -75,27 +75,29 @@ bool processSequenceLine(const std::vector<int> &in_alphabet,
             #endif
         } else {
             std::cerr << "Line " << line_num 
-                << ": Unrecognized character "  + std::string(1,*it);
+                      << ": Unrecognized character "  + std::string(1,*it);
             return false;
         }
     }
     return true;
 }
 
-double correctDistance(double char_dist, double chars_compared,
-                              double num_states) {
-    double obs_dist = (0<chars_compared)
-                    ? (char_dist/chars_compared) : 0.0;
-    double z = num_states / (num_states-1);
-    double x = 1.0 - (z * obs_dist);
-    if (x <= 0) {
-        return 10; //Todo: parameter should control this
+double correctedDistance(double char_dist,  double chars_compared,
+                         double num_states, double max_distance) {
+    double obs_dist = ( 0 < chars_compared )
+                    ? ( char_dist / chars_compared ) : 0.0;
+    double z = num_states / ( num_states - 1.0 );
+    double x = 1.0 - ( z * obs_dist );
+    double d = (x<=0) ? max_distance : -log(x)/z;
+    if (max_distance<=d) {
+        d = max_distance;
     }
-    return -log(x) / z;
+    return d;
 }
 
 double uncorrectedDistance(double char_dist,
-                                  double chars_compared) {
+                           double chars_compared,
+                           double max_distance) {
     return (0<chars_compared)
         ? (char_dist/chars_compared) : 0.0;
 }
@@ -243,7 +245,6 @@ bool Sequences::loadSequencesFromPhylip(const std::string& phylipFilePath,
     for (auto alpha=alphabet.begin(); alpha!=alphabet.end(); ++alpha) {
         in_alphabet[*alpha] = 1;
     }
-    bool   last_line_was_blank = false;
     size_t num_sequences       = 0;
     size_t sequence_length     = 0;
     bool   have_read_names     = 0;
@@ -276,7 +277,6 @@ bool Sequences::loadSequencesFromPhylip(const std::string& phylipFilePath,
                 return false;
             }
             have_read_names     = true;
-            last_line_was_blank = true;
             sequence_num        = 0;
             continue;            
         }
@@ -285,35 +285,40 @@ bool Sequences::loadSequencesFromPhylip(const std::string& phylipFilePath,
                                       line, name_length);
         }        
         sequence_num %= num_sequences;
+        std::string& seq_string = at(sequence_num).sequenceData();
         if (!processSequenceLine(in_alphabet, unknown_char,
-                                 at(sequence_num).sequenceData(),
-                                 line, line_num)) {
+                                 seq_string, line, line_num) ||
+            !validateInterleaving(phylipFilePath, line_num, sequence_num) ) {
+            in.close();
             return false;
         }
-        if (0<sequence_num) {
-            //Should we be checking that interleaving is consistent?
-            //Or... is this being too fussy?
-            if (at(sequence_num-1).sequenceLength() !=
-                at(sequence_num).sequenceLength() ) {
-                in.close();
-                std::cerr << "Inconsistent interleaving at line " << line_num
-                          << " of phylip multi-sequence alignment " << phylipFilePath << "."
-                          << "\nSequence " << (sequence_num) << " length "
-                          << " was " << at(sequence_num-1).sequenceLength() 
-                          << " but sequence " << (sequence_num+1) << " length "
-                          << " was " << at(sequence_num).sequenceLength() << ".";
-                return false;
-            }
-        }
         ++sequence_num;
-        last_line_was_blank = true;
     }
     in.close();
     return validateLoadFromPhylip(phylipFilePath, num_sequences, 
                                   sequence_length);
 }
 
-bool Sequences::validateLoadFromPhylip(const std::string phylipFilePath,
+bool Sequences::validateInterleaving(const std::string& phylipFilePath,
+                                     size_t line_num, size_t sequence_num) {                                        
+    if (0<sequence_num) {
+        //Should we be checking that interleaving is consistent?
+        //Or... is this being too fussy?
+        if (at(sequence_num-1).sequenceLength() !=
+            at(sequence_num).sequenceLength() ) {
+            std::cerr << "Inconsistent interleaving at line " << line_num
+                        << " of phylip multi-sequence alignment " << phylipFilePath << "."
+                        << "\nSequence " << (sequence_num) << " length "
+                        << " was " << at(sequence_num-1).sequenceLength() 
+                        << " but sequence " << (sequence_num+1) << " length "
+                        << " was " << at(sequence_num).sequenceLength() << ".";
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Sequences::validateLoadFromPhylip(const std::string& phylipFilePath,
                                        size_t num_sequences, size_t sequence_length) {
     size_t sequence_num;
     if (size() != num_sequences) {
@@ -438,11 +443,9 @@ void SequenceLoader::setUpSerializedData() {
     unk_buffer    = new uint64_t  [ unkLen * rank ];
     unknown_data  = new uint64_t* [ rank ];
     memset(unk_buffer, 0, unkLen * rank);
-        #if USE_PROGRESS_DISPLAY
+    #if USE_PROGRESS_DISPLAY
     const char* task = report_progress ? "Extracting variant sites": "";
     progress_display extract_progress(rank, task, "extracted from", "sequence");
-    #else
-    double extract_progress = 0.0;
     #endif
     #ifdef _OPENMP
     #pragma omp parallel for
@@ -465,26 +468,26 @@ void SequenceLoader::setUpSerializedData() {
         unknown_data[row]     = unk_buffer + unkLen * row;
         const char* read_site = sequence_data[row];
         uint64_t*   write_unk = unknown_data[row];
-        size_t           bits = 0;
-        size_t            unk = 0;
+        uint64_t          unk = 0;
         for (int col=0; col<seqLen; ++col) {
             unk <<= 1;
             if (read_site[col] == unknown_char ) {
                 ++unk;
             }
-            if (++bits == 64) {
-                bits = 0;
+            if ((col&63)==63) {
                 *write_unk = unk;
                 ++write_unk;
                 unk = 0;
             }
         }
-        if (bits!=0) {
+        if (unk!=0) {
             *write_unk = unk;
         }
+        #if USE_PROGRESS_DISPLAY
         if ((row%100)==0) {
             extract_progress += 100.0;
         }
+        #endif
     }
     #if USE_PROGRESS_DISPLAY
     extract_progress.done();
@@ -516,7 +519,8 @@ void SequenceLoader::getNumberOfStates() {
     }
 }
 
-SequenceLoader::SequenceLoader(char unknown, bool isDNA,
+SequenceLoader::SequenceLoader(char unknown, bool isDNA, 
+                               double maximum_distance,
                                Sequences& sequences_to_load, 
                                bool use_corected_distances,
                                int  precision_to_use, int compression, 
@@ -524,6 +528,7 @@ SequenceLoader::SequenceLoader(char unknown, bool isDNA,
                                const std::vector<char>& site_variant,
                                bool report_progress_while_loading)
     : unknown_char(unknown), is_DNA(isDNA)
+    , max_distance(maximum_distance)
     , correcting_distances(use_corected_distances)
     , output_format(output_format_to_use)
     , precision(precision_to_use)
@@ -539,6 +544,11 @@ SequenceLoader::SequenceLoader(char unknown, bool isDNA,
     for (auto it=is_site_variant.begin(); it!=is_site_variant.end(); ++it) {
         seqLen += *it;
     }
+    #if (0)
+    std::cout << "Number of invariant sites " << (rawSeqLen-seqLen) << "\n";
+    std::cout << "Number of variable sites " << (seqLen) << "\n";
+    std::cout << "Total number of sites " << rawSeqLen << "\n";
+    #endif
 }
 
 SequenceLoader::~SequenceLoader() {
@@ -548,23 +558,25 @@ SequenceLoader::~SequenceLoader() {
     delete [] buffer;
 }
 
- double SequenceLoader::getDistanceBetweenSequences(intptr_t row, intptr_t col) const {
+double SequenceLoader::getDistanceBetweenSequences(intptr_t row, intptr_t col) const {
     uint64_t char_distance = vectorHammingDistance
                                 (unknown_char, sequence_data[row],
-                                sequence_data[col], seqLen);
+                                 sequence_data[col], seqLen);
     uint64_t count_unknown = countBitsSetInEither
                                 (unknown_data[row], unknown_data[col],
-                                unkLen);
+                                 unkLen);
     double   distance      = 0;
     intptr_t adjSeqLen     = rawSeqLen - count_unknown;
     if (0<adjSeqLen) {
         if (correcting_distances) {
-            distance = correctDistance(static_cast<double>(char_distance), 
-                                        static_cast<double>(adjSeqLen), 
-                                        static_cast<double>(num_states));
+            distance = correctedDistance(static_cast<double>(char_distance), 
+                                         static_cast<double>(adjSeqLen), 
+                                         static_cast<double>(num_states),
+                                         max_distance);
         } else {
             distance = uncorrectedDistance(static_cast<double>(char_distance), 
-                                            static_cast<double>(adjSeqLen));
+                                           static_cast<double>(adjSeqLen),
+                                           max_distance);
         }
         if (distance < 0) {
             distance = 0;
@@ -595,8 +607,6 @@ bool SequenceLoader::loadSequenceDistances(FlatMatrix& m) {
     #if USE_PROGRESS_DISPLAY
     const char* task = report_progress ? "Calculating distances": "";
     progress_display progress( rank*(rank-1)/2, task );
-    #else
-    double progress = 0.0;
     #endif
     #ifdef _OPENMP
     #pragma omp parallel for schedule(dynamic)
@@ -607,7 +617,9 @@ bool SequenceLoader::loadSequenceDistances(FlatMatrix& m) {
             m.cell(row, col) = distance;
             m.cell(col, row) = distance;
         }
+        #if USE_PROGRESS_DISPLAY
         progress += (rank-row);
+        #endif
     }
     #if USE_PROGRESS_DISPLAY
     progress.done();
@@ -619,13 +631,13 @@ bool SequenceLoader::writeDistanceMatrixToFile(bool numbered_names,
                                                const std::string& filePath) {
     setUpSerializedData();
     getNumberOfStates();
+
+    #if USE_PROGRESS_DISPLAY
     bool   isTriangle = output_format.find("lower") != std::string::npos ||
                         output_format.find("upper") != std::string::npos;
     double halfIfTriangle = isTriangle ? 0.5 : 1.0;
     double calculations   = static_cast<double>(rank) 
-                            * static_cast<double>(rank) * halfIfTriangle;
-
-    #if USE_PROGRESS_DISPLAY
+                          * static_cast<double>(rank) * halfIfTriangle;
     const char* task = report_progress ? "Writing distance matrix file": "";
     progress_display progress(calculations, task );
     #else
@@ -673,7 +685,7 @@ bool SequenceLoader::writeDistanceMatrixToFile(bool numbered_names,
     useNumberedNamesIfAskedTo(numbered_names, m);
 
     m.writeToDistanceFile(output_format, precision,
-                          compression_level,
+                          compression_level, false,
                           filePath);
     return true;
 }

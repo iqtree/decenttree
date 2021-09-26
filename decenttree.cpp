@@ -53,18 +53,19 @@ namespace {
         return answer;
     }
 
-    bool correcting_distances      = true;
-    bool is_DNA                    = true;
-    bool numbered_names            = false;
-    bool filter_problem_sequences  = false;
-    char unknown_char              = 'N';
-    int  precision                 = 8;
-    int  compression_level         = 9;
+    bool   correcting_distances     = true;
+    bool   is_DNA                   = true;
+    bool   numbered_names           = false;
+    bool   filter_problem_sequences = false;
+    char   unknown_char             = 'N';
+    double max_distance             = 10.0;
+    int    precision                = 8;
+    int    compression_level        = 9;
     std::string msaOutputPath; //write .msa formatted version of .fasta input here
     std::string alphabet;      //defaults to ACGT
     std::string unknown_chars; //defaults to .~_-?N
-    std::string format             = "square.interleaved";
-    bool        interleaved_format = true;
+    std::string format              = "square.interleaved";
+    bool        interleaved_format  = true;
 
     std::string stripName;              //characters to strip from names
     std::string nameReplace("_");       //characters to replace stripepd chars with, in names
@@ -116,7 +117,8 @@ void showUsage() {
 bool loadSequenceDistancesIntoMatrix(Sequences& sequences,
                                      const std::vector<char>&   is_site_variant,
                                      bool report_progress, FlatMatrix& m) {
-    SequenceLoader loader(unknown_char, is_DNA, sequences, correcting_distances,
+    SequenceLoader loader(unknown_char, is_DNA, max_distance,
+                          sequences, correcting_distances,
                           precision, compression_level, format, 
                           is_site_variant, report_progress);
     bool success = loader.loadSequenceDistances(m);
@@ -247,15 +249,17 @@ bool prepInput(const std::string& fastaFilePath,
             if (loadMatrix) {
                 useNumberedNamesIfAskedTo(numbered_names, m);
                 return m.writeToDistanceFile(format, precision,
-                                 compression_level,
+                                 compression_level, reportProgress,
                                  distanceOutputFilePath );
             }
             else {
-                SequenceLoader loader(unknown_char, is_DNA, sequences, 
+                SequenceLoader loader(unknown_char, is_DNA, 
+                                      max_distance, sequences, 
                                       correcting_distances, precision, 
                                       compression_level, format,
                                       is_site_variant, reportProgress);
-                bool success = loader.writeDistanceMatrixToFile(numbered_names, distanceOutputFilePath);
+                bool success = loader.writeDistanceMatrixToFile(numbered_names, 
+                                                                distanceOutputFilePath);
                 return success;
             }
         }
@@ -265,7 +269,7 @@ bool prepInput(const std::string& fastaFilePath,
             fixUpSequenceNames(truncateName, stripName, nameReplace, m);
             if (!distanceOutputFilePath.empty()) {
                 return m.writeToDistanceFile(format, precision,
-                                             compression_level,
+                                             compression_level, reportProgress,
                                              distanceOutputFilePath );
             }
             return true;
@@ -327,7 +331,7 @@ public:
         arg_map << new StringArgument("-fasta", "fasta file path",             fastaFilePath);
         arg_map << new StringArgument("-phylip", "phylip alignment file path", phylipFilePath);
         arg_map << new StringArgument("-in",    "distance matrix file path",   inputFilePath);
-        arg_map << new StringArgument("-dist",  "distance matrix file path",   inputFilePath);
+        arg_map << new StringArgument("-dist",  "distance matrix file path",   distanceOutputFilePath);
         arg_map << new IntArgument   ("-c",     "compression level between 1 and 9", 
                                     compression_level);
         arg_map << new IntArgument   ("-f",     "precision level between 4 and 15",
@@ -349,6 +353,7 @@ public:
         arg_map << new SwitchArgument("-gz",          isOutputZipped,           true);
         arg_map << new SwitchArgument("-no-banner",   isBannerSuppressed,       true);
         arg_map << new SwitchArgument("-uncorrected", correcting_distances,     false);
+        arg_map << new DoubleArgument("-max-dist",    "maximum distance", max_distance);
         arg_map << new IntArgument   ("-nt", "thread count", threadCount);
         arg_map << new SwitchArgument("-q",           beSilent,                 true);
         arg_map << new SwitchArgument("-filter",      filter_problem_sequences, true);
@@ -385,9 +390,17 @@ public:
                 break;
             }
         }
+        if (max_distance<=0) {
+            PROBLEM("Maximum distance (" << max_distance << ") too low");
+        }
         range_restrict(0, 9,  compression_level );
         range_restrict(1, 15, precision );
         format = string_to_lower(format);
+        if (isOutputZipped && 
+            format.find(".gz") == std::string::npos) {
+            //Ensure that distance file will be compressed
+            format += ".gz"; 
+        }
         if (isOutputToStandardOutput) {
             outputFilePath = "STDOUT";
         }
@@ -502,7 +515,7 @@ int obeyCommandLineOptions(DecentTreeOptions& options) {
     else if (succeeded && options.isMatrixToBeLoaded) {
         succeeded = algorithm->constructTreeInMemory(m.getSequenceNames(),
                                                      m.getDistanceMatrix(),
-                                                     options.outputFilePath);    
+                                                     options.outputFilePath);
     }
     else if (!options.inputFilePath.empty()) {
         succeeded = algorithm->constructTree(options.inputFilePath, 

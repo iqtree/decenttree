@@ -86,7 +86,9 @@
 #include <algorithm>                 //for std::sort
 
 #include "distancematrix.h"          //for Matrix template class
+#include "hashrow.h"                 //for HashRow template class
 #include "clustertree.h"             //for ClusterTree template class
+#include "utils/parallel_mergesort.h"
 
 
 #if (!USE_PROGRESS_DISPLAY)
@@ -138,7 +140,6 @@ public:
 template <class T> class Positions : public std::vector<Position<T>>
 {
 };
-
 
 template <class T=NJFloat> class UPGMA_Matrix: public SquareMatrix<T> {
     //UPGMA_Matrix is a D matrix (a matrix of distances).
@@ -203,13 +204,13 @@ public:
         }
         double triangle = row_count * (row_count + 1.0) * 0.5;
         progress_display show_progress(triangle, taskName.c_str(), "", "");
-        #else
-        double show_progress = 0;
         #endif
         while ( 3 < row_count ) {
             getMinimumEntry(best);
             cluster(best.column, best.row);
+            #if USE_PROGRESS_DISPLAY
             show_progress += row_count;
+            #endif
         }
         finishClustering();
         #if USE_PROGRESS_DISPLAY
@@ -226,6 +227,11 @@ public:
     bool writeTreeFile(int precision, const std::string &treeFilePath) const {
         return clusters.writeTreeFile(isOutputToBeZipped, precision, treeFilePath);
     }
+    bool calculateRMSOfTMinusD(const double* matrix, intptr_t rank, double& rms) {
+        return clusters.calculateRMSOfTMinusD(matrix, rank, rms);
+    }
+
+
 protected:
     void getMinimumEntry(Position<T> &best) {
         getRowMinima();
@@ -305,24 +311,6 @@ protected:
         rowToCluster[b] = rowToCluster[row_count-1];
         removeRowAndColumn(b);
     }
-    struct HashRow {
-    public:
-        size_t hash;
-        size_t row_num;
-        int compare(const HashRow& rhs, UPGMA_Matrix<T>* me) const {
-            if (hash!=rhs.hash) {
-                return (hash < rhs.hash) ? -1 : 1;
-            }
-            T* rowA = me->rows[row_num];
-            T* rowB = me->rows[rhs.row_num];
-            for (intptr_t i=0; i<me->row_count; ++i) {
-                if (rowA[i]!=rowB[i]) {
-                    return (rowA[i] < rowB[i]) ? -1 : 1;
-                }
-            }
-            return 0;
-        }
-    };
     void clusterDuplicates() {
         #if (USE_PROGRESS_DISPLAY)
         std::string taskName = "Identifying identical (and nearly identical) taxa";
@@ -334,23 +322,21 @@ protected:
         progress_display show_progress = 0;
         #endif
 
-        std::vector<HashRow> hashed_rows;
+        std::vector<HashRow<T>> hashed_rows;
         calculateRowHashes(hashed_rows, show_progress);
-        std::vector< std::vector< intptr_t > > vvc;
-        identifyDuplicateClusters(hashed_rows, vvc, show_progress);
-        
-        #if (USE_PROGRESS_DISPLAY)
+        DuplicateTaxa vvc;
+        HashRow<T>::identifyDuplicateClusters(hashed_rows, vvc);
+ 
         size_t dupes_clustered = joinUpDuplicateClusters(vvc, show_progress);
+        #if (USE_PROGRESS_DISPLAY)
         show_progress.done();
+        #endif
         if (0<dupes_clustered && !silent) {
             std::cout << "Clustered " << dupes_clustered
                       << " identical (or near-identical) taxa." << std::endl;
         }
-        #else
-            joinUpDuplicateClusters(vvc, show_progress);
-        #endif
     }
-    void calculateRowHashes(std::vector<HashRow>& hashed_rows,
+    void calculateRowHashes(std::vector<HashRow<T>>& hashed_rows,
                             progress_display& show_progress) {
         //1. Calculate row hashes
         hashed_rows.resize(row_count);
@@ -358,58 +344,19 @@ protected:
         #pragma omp parallel for
         #endif
         for (intptr_t i=0; i<row_count; ++i) {
-            T* row_i = this->rows[i];
-            size_t row_hash = 0;
-            for (intptr_t col=0; col<row_count;++col ) {
-                row_hash ^= std::hash<double>()(row_i[col])
-                    + 0x9e3779b9 + (row_hash<<6) + (row_hash>>2);
-            }
-            hashed_rows[i].hash     = row_hash;
-            hashed_rows[i].row_num  = i;
-            if ((i%1000)==999) {
-                show_progress += (double)(1000.0);
-            }
-        }
-        //2. Sort rows by hash (and tiebreak on row content)
-        auto me = this;
-        std::sort(hashed_rows.begin(), hashed_rows.end(),
-              [me](const HashRow& a, const HashRow& b) {
-                return a.compare(b, me) < 0;
-            });
-        show_progress += (double)(row_count%1000);
-    }
-    void identifyDuplicateClusters(const std::vector<HashRow>& hashed_rows,
-                                   std::vector< std::vector< intptr_t > >& vvc,
-                                   progress_display& show_progress) {
-        //3. Now, any duplicate rows are next to each other in
-        //   hashed_rows.  Construct a vector of vectors of
-        //   cluster numbers (vvc).
-        std::vector< intptr_t> vc; //vector of cluster #s
-        for (intptr_t i=1; i<row_count; ++i) {
-            if (hashed_rows[i].compare(hashed_rows[i-1], this)!=0) {
-                //Not a duplicate of the previous row.
-                if (!vc.empty()) {
-                    //Add vector of the clusters in previous group of
-                    //duplicates, to vvc.  And start a new one (empty).
-                    vvc.emplace_back(vc);
-                    vc.clear();
+            hashed_rows[i] = HashRow<T>(rowToCluster[i], rows[i], row_count);
+            #if (USE_PROGRESS_DISPLAY)
+                if ((i%1000)==999) {
+                    show_progress += (double)(1000.0);
                 }
-            } else { //duplicate of previous row
-                if (vc.empty()) {
-                    //This row and the previous one are to be the first
-                    //two rows whose clusters belong in the current
-                    //vector of duplicate clusters, which is empty.
-                    //Add the cluster that corresponds to the previous row.
-                    vc.push_back(rowToCluster[hashed_rows[i-1].row_num]);
-                }
-                vc.push_back(rowToCluster[hashed_rows[i].row_num]);
-            }
+            #endif
         }
-        if (!vc.empty()) {
-            vvc.emplace_back(vc);
-        }
+        std::sort(hashed_rows.begin(), hashed_rows.end());
+        #if (USE_PROGRESS_DISPLAY)
+            show_progress += (double)(row_count%1000);
+        #endif
     }
-    size_t joinUpDuplicateClusters(std::vector< std::vector< intptr_t > >& vvc,
+    size_t joinUpDuplicateClusters(DuplicateTaxa& vvc,
                                    progress_display& show_progress) {
         if (vvc.empty()) {
             show_progress += (double)row_count;
@@ -432,14 +379,13 @@ protected:
         //5. Join up any duplicate clusters
         double work_done = 0.0;
         size_t dupes_removed = 0;
-        for (std::vector<intptr_t> vc : vvc) {
+        for (std::vector<intptr_t>& vc : vvc) {
             double work_here = static_cast<double>(vc.size()) * work_per_dupe;
-            dupes_removed += vc.size();
-            --dupes_removed;
-            while (vc.size()>1) {
-                intptr_t first_half = vc.size() / 2;
-                intptr_t second_half = vc.size()-first_half;
-                for (intptr_t i=0; i<first_half; ++i) {
+            dupes_removed += (vc.size()-1);
+            while (vc.size()>1 && 3<row_count) {
+                intptr_t first_half  = vc.size() / 2;          //half, rounded down
+                intptr_t second_half = vc.size() - first_half; //half, rounded up
+                for (intptr_t i=0; i<first_half && 3<row_count; ++i) {
                     intptr_t cluster_a = vc[i];
                     intptr_t row_a     = cluster_to_row[cluster_a];
                     intptr_t cluster_b = vc[i+second_half];
@@ -448,16 +394,16 @@ protected:
                     if (row_b<row_a) {
                         std::swap(row_a, row_b);
                     }
+                    intptr_t cluster_x = rowToCluster[row_count-1];
                     cluster(row_a, row_b);
                     vc[i] = cluster_c;
                     cluster_to_row.push_back(row_a);
-                    if (row_b < row_count) {
-                        cluster_to_row[rowToCluster[row_b]] = row_b;
-                    }
+                    cluster_to_row[cluster_x] = row_b;
                 }
                 vc.resize(second_half);
                 //Not first_half (rounded down), second_half (rounded up), 
-                //because, if there was an odd cluster, this keeps it
+                //because, if there was an odd cluster, it must be kept
+                //in play.
             }
             work_done += work_here;
             if (work_done > 1000.0) {
@@ -493,15 +439,14 @@ protected:
 public:
     VectorizedUPGMA_Matrix() : super(), blockSize(VB().size()) {
     }
-    virtual std::string getAlgorithmName() const {
+    virtual std::string getAlgorithmName() const override {
         return "Vectorized-" + super::getAlgorithmName();
     }
-    virtual void calculateRowTotals() const {
+    virtual void calculateRowTotals() const override {
         size_t fluff = MATRIX_ALIGNMENT / sizeof(T);
         scratchColumnNumbers.resize(row_count + fluff, 0.0);
     }
-    virtual void getRowMinima() const
-    {
+    virtual void getRowMinima() const override {
         T* nums = matrixAlign ( scratchColumnNumbers.data() );
         rowMinima.resize(row_count);
         rowMinima[0].value = infiniteDistance;
@@ -510,10 +455,10 @@ public:
         #endif
         for (intptr_t row=1; row<row_count; ++row) {
             Position<T> pos(row, 0, infiniteDistance, 0);
-            const T* rowData = rows[row];
-            intptr_t col;
-            V minVector  = infiniteDistance;
-            V ixVector   = -1 ;
+            const T*    rowData    = rows[row];
+            intptr_t    col;
+            V           minVector  = infiniteDistance;
+            V           ixVector   = -1;
 
             for (col=0; col+blockSize<row; col+=blockSize) {
                 V  rowVector; rowVector.load_a(rowData+col);
