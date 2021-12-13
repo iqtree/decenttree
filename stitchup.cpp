@@ -487,6 +487,7 @@ public:
         silent = true;
     }
     virtual bool constructTree() {
+        prepareToConstructTree();
         if (row_count<3) {
             return false;
         }
@@ -636,6 +637,7 @@ public:
     }
 
     virtual bool constructTree() override {
+        prepareToConstructTree();
         if (row_count<3) {
             return false;
         }
