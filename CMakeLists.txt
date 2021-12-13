@@ -592,7 +592,7 @@ add_executable(decenttree
     upgma.h        nj.h  
     rapidnj.h      auctionmatrix.h
     clustertree.h  distancematrix.h 
-    stitchup.cpp
+    stitchup.cpp  
     
     utils/argument.cpp
     utils/hammingdistance.h    utils/heapsort.h 
