@@ -251,7 +251,7 @@ public:
 
         return true;
     }
-    virtual bool prepareToConstructTree() {
+    virtual void prepareToConstructTree() {
     }
     virtual bool constructTree() {
         prepareToConstructTree();
