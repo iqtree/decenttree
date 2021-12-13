@@ -601,6 +601,7 @@ add_executable(decenttree
     utils/gzstream.cpp         utils/gzstream.h
     utils/progress.cpp         utils/progress.h 
     utils/operatingsystem.cpp  utils/operatingsystem.h
+    utils/stringfunctions.cpp  utils/stringfunctions.h
     utils/vectortypes.cpp      utils/vectortypes.h)
 
 if(ZLIB_FOUND)

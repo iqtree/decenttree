@@ -24,6 +24,7 @@ cp timeutil.h my_assert.h safe_io.h      ../../decenttree/utils
 cp parallel_mergesort.h parallel_sort.h  ../../decenttree/utils
 cp vectortypes.cpp vectortypes.h         ../../decenttree/utils
 cp hammingdistance.h                     ../../decenttree/utils
+cp stringfunctions.h stringfunctions.cpp ../../decenttree/utils
 cd ..
 cp -R zlib-1.2.7      ../decenttree
 cp -R lib             ../decenttree

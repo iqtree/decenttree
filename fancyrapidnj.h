@@ -251,7 +251,10 @@ public:
 
         return true;
     }
+    virtual bool prepareToConstructTree() {
+    }
     virtual bool constructTree() {
+        prepareToConstructTree();
         if (original_rank<3) {
             return false;
         }

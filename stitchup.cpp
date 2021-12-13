@@ -486,6 +486,8 @@ public:
     virtual void beSilent() {
         silent = true;
     }
+    virtual void prepareToConstructTree() {
+    }
     virtual bool constructTree() {
         prepareToConstructTree();
         if (row_count<3) {
@@ -575,6 +577,7 @@ public:
     using super::clusters;
     using super::rowTotals;
     //member functions from super-class
+    using super::prepareToConstructTree;
     using super::cluster;
     using super::finishClustering;
     
@@ -633,7 +636,6 @@ public:
             progress += (taxon_count-row_count);
         }
         finishClustering();
-
     }
 
     virtual bool constructTree() override {
