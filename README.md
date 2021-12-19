@@ -215,7 +215,8 @@ All of these classes are in the StartTree namespace.
   (in the NJ-V, BIONJ-V, UPGMA-V algorithms, implemented by
    VectorNJ, VectorBIONJ and VectorizedUPGMA_Matrix template classes).
    See: https://github.com/vectorclass.
-- zlib [Todo]
+- zlib (https://zlib.net) is a free library of compression algorithms.
+  (decenttree is built with version 1.2.7).
 - gzstream, C++ iostream classes wrapping the zlib compression library.
   Copyright (C) 2001  Deepak Bandyopadhyay, Lutz Kettner
 - The heapsort algorithm implemented in parallel_heapsort.h, is loosely 
