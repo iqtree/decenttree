@@ -42,23 +42,24 @@ compile with Agner Fog's VectorClass library - for vectorization).
 
 <h2>Command-line options</h2>
 
-| Option     | Argument               | Description |
-| ------     | --------               | ----------- |
-| -nt        | number (1 or more)     | Specify number of threads of execution (if built with OMP) |
-| -no-banner |                        | Suppress banner |
-| -v         |                        | Verbose output |
-| -q         |                        | Silent |
-| -fasta     | fasta input file path  | Supply path of a fasta format file containing an alignment |
-| -in        | dist input file path   | Supply path of a distance matrix file.        |
-| -dist      | dist input file path   | Supply path of a distance matrix file         |
-| -not-dna   |                        | with -fasta, indicates input is (not) DNA     |
-| -alphabet  | list of characters     | with -fasta, recognized nucleotide characters |
-| -unknown   | list of characters     | with -fasta, characters that indicate unknown |
+| Option      | Argument               | Description |
+| ------      | --------               | ----------- |
+| -nt         | number (1 or more)     | Specify number of threads of execution (if built with OMP) |
+| -no-banner  |                        | Suppress banner |
+| -v          |                        | Verbose output |
+| -bar        | | Turns on the display of progress bars |
+| -q          |                        | Silent |
+| -fasta      | fasta input file path  | Supply path of a fasta format file containing an alignment |
+| -in         | dist input file path   | Supply path of a distance matrix file.        |
+| -dist       | dist input file path   | Supply path of a distance matrix file         |
+| -not-dna    |                        | with -fasta, indicates input is (not) DNA     |
+| -alphabet   | list of characters     | with -fasta, recognized nucleotide characters |
+| -unknown    | list of characters     | with -fasta, characters that indicate unknown |
 | -strip-name   | list of characters | Characters to strip from taxon names (case sensitive) |
 | -name-replace | list of characters | Characters to replace the stripped characters with |
 | -truncate-name-at | list of characters | Truncate taxon name on one of these characters |
 | -uncorrected | | with -fasta, do not apply Jukes-Cantor distance correction to calculated distances |
-| -filter | | with -fasta, Filter sequences that have zero distance |
+| -filter     | | with -fasta, Filter sequences that have zero distance |
 | -no-matrix  |  | with -fasta, save memory by *not* constructing the input matrix in memory  |
 | -msa-out    | msa output file path             | with -fasta, write alignment in msa format |
 | -dist-out   | distance matrix output file path | Use STDOUT to write it to standard output  |
@@ -68,17 +69,22 @@ compile with Agner Fog's VectorClass library - for vectorization).
 | -no-out     |                                  | Do not generate a newick output file       |
 | -gz         |                                  | Write outputs in gzip format               |
 | -out-format | square, upper, lower | format for writing distance matrix output |
-| -f     | number 1-15     | Digits of precision, to write in the output      |
-| -c     | number 0-9      | Compression level to use when writing gzip files |
+| -f          | number 1-15     | Digits of precision, to write in the output      |
+| -c          | number 0-9      | Compression level to use when writing gzip files |
 
 <h2>Algorithms</h2>
 Each of the working matrices require the same amount of memory (approximately 4 * n * n bytes,
 where n is the number of taxa), except for the double precision versions (where the D, V, and S
 matrices are twice as large).  The D matrix tracks distances between taxa (or clusters). The V 
-matrix tracks estimated variace associated with each taxon (or cluster) (only in BIONJ 
+matrix tracks estimated variance associated with each taxon (or cluster) (only in BIONJ 
 implementations).  The S matrix is like the D matrix, but with each row sorted by increasing 
 distance (and each row of the I matrix contains the indices of the clusters that correspond to
-those distances).
+those distances).  Only branch-and-bound algorithms use S and I matrices.
+
+The ONJ-R and ONJ-R-V implementations use a single _triangular_ S+I matrix, containing 
+entries that are (distance, cluster number) pairs (and removing entries for clusters 
+that are no longer under consideration).  They're rather more complicated (and for now, 
+appear to be slightly slower) than the NJ-R and NJ-R-V implementations.
 
 | Name     | Matrices    | Description | Notes |
 | ----     | --------    | ----------- | ----- |
@@ -88,6 +94,8 @@ those distances).
 | NJ-V     | D           | Vectorized version of Neighbor Joining   | |
 | NJ-R     | D, S, I     | NJ with branch and bound optimization    | Recommended |
 | NJ-R-D   | D, S, I.    | Double precision version of NJ-R.        | |
+| ONJ-R    | D, S+I      | An alternative version of NJ-R           | Slower than NJ-R|
+| ONJ-R-V  | D, S+I      | An alternative version of NJ-R           | Slower than NJ-R-V|
 | UNJ      | D           | Unweighted Neighbor Joining              | |
 | BIONJ    | D, V        | BIONJ                                    | |
 | BIONJ-V  | D, V        | Vectorized version of BIONJ              | |
@@ -135,16 +143,16 @@ All of these classes are in the StartTree namespace.
 
 <h3>Alignments</h3>
 
-| File    | Class.                 | Dependencies | Function |
-| -----   | ----------             | ------------ | -------- |
-| sequence.h, sequence.cpp | Sequence | none | Recording sequence name and sites|
-| sequence.h, sequence.cpp | Sequences | Sequence | Loading sequence alignments from fast or phylip files.|
-| sequence.h, sequence.cpp | SequenceLoader | Sequences | Loading sequence alignments, calculating hamming (or Jukes-Cantor) distances, loading distance matrices and writing distance matrices in Phylip format.|
+| File                     | Class.         | Dependencies | Function |
+| -----                    | ----------     | ------------ | -------- |
+| sequence.h, sequence.cpp | Sequence       | none         | Recording sequence name and sites|
+| sequence.h, sequence.cpp | Sequences.     | Sequence     | Loading sequence alignments from fast or phylip files.|
+| sequence.h, sequence.cpp | SequenceLoader | Sequences.   | Loading sequence alignments, calculating hamming (or Jukes-Cantor) distances, loading distance matrices and writing distance matrices in Phylip format.|
 
 <h3>Sorting</h3>
 
-| File    | Class.                 | Dependencies | Function |
-| -----   | ----------             | ------------ | -------- |
+| File            | Class.                   | Dependencies    | Function |
+| -----           | ----------               | ------------    | -------- |
 | parallel_sort.h | ParallelSorter           | none            | Interface |
 | parallel_sort.h | ParallelMirrorSorter     | ParallelSorter  | Interface, for sorting one array (row of S) and mirroring the permutation in another (row of I) |
 | parallel_sort.h | ValueAndSattelite        | none            | Sorting (key,value) pairs by key (and not value) |
