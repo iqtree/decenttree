@@ -219,12 +219,18 @@ public:
 
     template <class F> 
     bool writeTreeToFile(int precision, 
-                         const std::string &treeFilePath, 
+                         const std::string &treeFilePath,
+                         bool isOutputToBeAppended,
+                         bool isSubtreeOnly,
                          F& out) const {
         out.exceptions(std::ios::failbit | std::ios::badbit);
         try {
-            out.open(treeFilePath.c_str(), std::ios_base::out);
-            writeTreeToOpenFile(precision, out);
+            auto openMode = isOutputToBeAppended
+                          ? std::ios_base::app : std::ios_base::trunc;
+            openMode |= std::ios_base::out;  
+            out.open(treeFilePath.c_str(), openMode );
+            out.precision(precision);
+            writeTreeToOpenFile(isSubtreeOnly, out);
             out.close();
             return true;
         } catch (std::ios::failure &) {
@@ -239,8 +245,11 @@ public:
             return false;
         }
     }
-    template <class F> bool writeTreeToOpenFile(int precision, F& out) const {
-        out.precision(precision);
+    bool isRootCluster(const Place& here) const {
+        return here.clusterIndex + 1 == size();
+    }
+    template <class F> bool writeTreeToOpenFile
+        ( bool isSubtreeOnly, F& out) const {
         std::vector<Place> stack;
         bool failed = false; //Becomes true if clusters
         //defines cycles (should never happen)
@@ -249,7 +258,8 @@ public:
         //More than this, and there must be
         //a cycle.  Or something.
         
-        stack.emplace_back(size()-1, 0); //assumes: size is at least 1!
+        ASSERT(0<size());
+        stack.emplace_back(size()-1, 0);
         do {
             --maxLoop;
             if (maxLoop==0) {
@@ -264,7 +274,10 @@ public:
                 continue;
             }
             if (here.linkNumber==0) {
-                out << "(";
+                if (!isSubtreeOnly || !isRootCluster(here))
+                {
+                    out << "(";
+                }
                 stack.emplace_back(here.clusterIndex, 1);
                 stack.emplace_back(cluster.links[0].clusterIndex, 0);
                 continue;
@@ -277,27 +290,36 @@ public:
                 const Link<T> & linkBelow = cluster.links[nextChildNum];
                 stack.emplace_back(here.clusterIndex, nextChildNum+1);
                 stack.emplace_back(linkBelow.clusterIndex, 0);
-            } else {
+            } else if (!isSubtreeOnly || !isRootCluster(here)) {
                 out << ")";
             }
         } while (0 < stack.size());
-        out << ";" << std::endl;
+        if (!isSubtreeOnly) {
+            out << ";" << std::endl;
+        }
         return !failed;
     }
     bool writeTreeFile(bool zipIt, int precision,
-                       const std::string &treeFilePath) const {
+                       const std::string &treeFilePath,
+                       bool isOutputToBeAppended,
+                       bool subtreeOnly) const {
         if (treeFilePath == "STDOUT") {
-            return writeTreeToOpenFile(precision, std::cout);
+            std::cout.precision(precision);
+            return writeTreeToOpenFile(subtreeOnly, std::cout );
         } else if (zipIt) {
             #if USE_GZSTREAM
             ogzstream     out;
             #else
             std::ofstream out;
             #endif
-            return writeTreeToFile(precision, treeFilePath, out);
+            return writeTreeToFile(precision, treeFilePath, 
+                                   isOutputToBeAppended, 
+                                   subtreeOnly, out);
         } else {
             std::fstream out;
-            return writeTreeToFile(precision, treeFilePath, out);
+            return writeTreeToFile(precision, treeFilePath, 
+                                   isOutputToBeAppended, 
+                                   subtreeOnly, out);
         }
     }
 }; //end of ClusterTree class
