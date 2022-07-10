@@ -14,7 +14,7 @@
 #include <sstream>          //for std::istringstream
 
 void example_1() {
-#ifdef USE_VECTORCLASS_LIBRARY	
+#if USE_VECTORCLASS_LIBRARY	
 	StartTree::VectorNJ r;
 #else
 	StartTree::RapidNJ r;

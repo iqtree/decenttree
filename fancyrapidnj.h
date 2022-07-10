@@ -82,8 +82,8 @@ protected:
             #define INFILE(name) Infile name
         #endif
     #else
-        typedef ifstream InFile;
-        #define INFILE(name) Infile name
+        typedef std::ifstream InFile;
+        #define INFILE(name) InFile name
     #endif
     typedef std::vector<T>    DistanceVector;
     struct MatrixEntry {
@@ -894,7 +894,7 @@ protected:
     }
 }; //FancyNJMatrix template class
 
-#ifdef USE_VECTORCLASS_LIBRARY
+#if USE_VECTORCLASS_LIBRARY
 template <class T=NJFloat, class V=FloatVector, class VB=FloatBoolVector> 
 class VectorizedFancyNJMatrix: public FancyNJMatrix<T> {
 public:

@@ -715,6 +715,7 @@ public:
 typedef VectorizedBoundingMatrix
         <NJFloat, FloatVector, FloatBoolVector, NJMatrix<NJFloat> >
         Vectorized_RapidNJ;
+        
 typedef VectorizedBoundingMatrix
         <NJFloat, FloatVector, FloatBoolVector, BIONJMatrix<NJFloat> >
         Vectorized_RapidBIONJ;

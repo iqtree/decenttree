@@ -58,14 +58,14 @@ void Factory::addBuilder(const std::string& name, BuilderInterface* builder) {
     mapOfTreeBuilders [ name ] = builder;
 }
 
-BuilderInterface* Factory::getBuilder(const std::string& name) {
+BuilderInterface* Factory::getBuilder(const std::string& name) const {
     auto found = mapOfTreeBuilders.find(name);
     return ( found == mapOfTreeBuilders.end())
             ? nullptr
             : found->second;
 }
 
-BuilderInterface* Factory::getBuilder(const char* name) {
+BuilderInterface* Factory::getBuilder(const char* name) const {
     std::string s(name);
     return getBuilder(s);
 }
@@ -96,6 +96,19 @@ const std::string& Factory::getNameOfDefaultTreeBuilder() {
 
 BuilderInterface* Factory::getTreeBuilderByName(const std::string& name) {
     return getInstance().getBuilder(name);
+}
+
+BuilderInterface* Factory::getDefaultTreeBuilder() const {
+    return getBuilder(nameOfDefaultTreeBuilder);
+}
+
+BuilderInterface* Factory::getTreeBuilderByName(const char* name) {
+    if (name!=nullptr && strlen(name)!=0) {
+        return getInstance().getBuilder(name);
+    } 
+    else {
+        return getInstance().getDefaultTreeBuilder();
+    }
 }
 
 BenchmarkingTreeBuilder::BenchmarkingTreeBuilder(Factory& f, const char* nameToUse,
@@ -192,6 +205,13 @@ namespace {
         }
         return t.substr(0,w);
     }
+}
+
+bool BenchmarkingTreeBuilder::constructTreeStringInMemory
+    ( const StrVector& sequenceNames
+    , const double*    distanceMatrix
+    , std::string&     output_string) {
+    return false;
 }
 
 bool BenchmarkingTreeBuilder::constructTreeInMemory

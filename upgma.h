@@ -462,7 +462,7 @@ protected:
     }
 };
 
-#ifdef USE_VECTORCLASS_LIBRARY
+#if USE_VECTORCLASS_LIBRARY
 template <class T=NJFloat, class V=FloatVector, class VB=FloatBoolVector>
 class VectorizedUPGMA_Matrix: public UPGMA_Matrix<T>
 {
