@@ -2,6 +2,11 @@
 //the (64-bit) version of libiomp5md.dll can be found in the library path
 //when your executable runs.
 
+#undef USE_GZSTREAM
+#undef USE_PROGRESS_DISPLAY
+#undef USE_VECTORCLASS_LIBRARY
+#undef DECENT_TREE
+
 #define USE_GZSTREAM            0 //If you linked in gzstream.cpp, this could be set to 1.
                                   //(not that this example needs gz formatting)
 #define USE_PROGRESS_DISPLAY    1 //If you linked in progress.cpp, this could be set to 1.

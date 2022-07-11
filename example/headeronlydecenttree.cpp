@@ -2,11 +2,26 @@
 //the (64-bit) version of libiomp5md.dll can be found in the library path
 //when your executable runs.
 
+#ifdef USE_GZSTREAM
+#undef USE_GZSTREAM
+#endif
 #define USE_GZSTREAM            0 //If you linked in gzstream.cpp, this could be set to 1.
                                   //(not that this example needs gz formatting)
+
+#ifdef USE_PROGRESS_DISPLAY
+#undef USE_PROGRESS_DISPLAY
+#endif
 #define USE_PROGRESS_DISPLAY    0 //If you linked in progress.cpp, this could be set to 1.
                                   //to get progress bars (not much point on small inputs!)
+
+#ifdef  USE_VECTORCLASS_LIBRARY
+#undef  USE_VECTORCLASS_LIBRARY
+#endif
 #define USE_VECTORCLASS_LIBRARY 0 //For an input this small, vectorisation doesn't matter.
+
+#ifdef  DECENT_TREE
+#undef  DECENT_TREE
+#endif
 #define DECENT_TREE             1 //Tells shared headers that decenttree, rather than
                                   //iqtree2, is being built. 
 

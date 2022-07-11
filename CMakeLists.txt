@@ -261,39 +261,7 @@ else()
     endif()
 endif()
 
-##################################################################
-# configure MPI compilation
-##################################################################
-
-if (DECENTTREE_FLAGS MATCHES "mpi")
-    add_definitions(-D_DECENTTREE_MPI)
-    if (NOT CMAKE_CXX_COMPILER MATCHES "mpi")
-        # if not using the MPI compiler wrapper, set own options manually
-        find_package(MPI)
-        if (MPI_Found)
-            set(CMAKE_CXX_COMPILE_FLAGS "${CMAKE_CXX_COMPILE_FLAGS} ${MPI_CXX_COMPILE_FLAGS}")
-            set(CMAKE_C_COMPILE_FLAGS "${CMAKE_C_COMPILE_FLAGS} ${MPI_C_COMPILE_FLAGS}")
-            set(CMAKE_CXX_LINK_FLAGS "${CMAKE_CXX_LINK_FLAGS} ${MPI_CXX_LINK_FLAGS}")
-            set(CMAKE_C_LINK_FLAGS "${CMAKE_C_LINK_FLAGS} ${MPI_C_LINK_FLAGS}")
-            include_directories(${MPI_C_INCLUDE_PATH})
-            include_directories(${MPI_CXX_INCLUDE_PATH})
-        else()
-            if(CLANG_UNDER_VS)
-                #Under Visual Studio, the MPI package isn't found, if you haven't installed FORTRAN
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /I${MPI_DIR}/Include")
-                set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /I${MPI_DIR}/Include")
-                #message("MPI DIR was ${MPI_DIR}")
-                if (BINARY32)
-                    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${MPI_DIR}\\lib\\x86 msmpi.lib /PROFILE")
-                else()
-                    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${MPI_DIR}\\lib\\x64 msmpi.lib /PROFILE")
-                endif()
-            endif()
-        endif()
-    endif()
-endif()
-
-if(DECENTTREE_FLAGS MATCHES "novx")
+if(DECENTTREE_FLAGS MATCHES "noavx")
     add_definitions(-D__NOAVX__)
 endif()
 
@@ -306,12 +274,12 @@ find_package(OpenMP)
 if (OPENMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    message("OpenMP        : Yes")
 else()
     message("OpenMP package not found")
 endif()
 
 if (NOT DECENTTREE_FLAGS MATCHES "single")
-    message("OpenMP        : Yes")
     if (NOT CLANG_UNDER_VS)
         add_definitions(-D_USE_PTHREADS)
     endif()
@@ -373,14 +341,6 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
     endif()
 else()
     message("OpenMP        : NONE")
-endif()
-
-
-if (DECENTTREE_FLAGS MATCHES "mpi")
-    message("MPI           : Yes")
-    SET(EXE_SUFFIX "${EXE_SUFFIX}-mpi")
-else()
-    message("MPI           : NONE")
 endif()
 
 ##################################################################
@@ -473,7 +433,6 @@ elseif (NOT DECENTTREE_FLAGS MATCHES "nosse") #SSE intruction set
     #set(COMBINED_FLAGS "${COMBINED_FLAGS} ${SSE_FLAGS}")
 endif()
 
-
 ##################################################################
 # Setup compiler flags
 ##################################################################
@@ -531,11 +490,9 @@ configure_file (
 # so that we will find decenttree_config.h
 include_directories("${PROJECT_BINARY_DIR}")
 
-add_subdirectory(example)
-
-if (NOT DECENTTREE_FLAGS MATCHES "nozlib")
-    find_package(ZLIB)
-endif()
+#if (NOT DECENTTREE_FLAGS MATCHES "nozlib")
+#    find_package(ZLIB)
+#endif()
 
 if(ZLIB_FOUND)
   message ("Using system zlib")
@@ -636,34 +593,17 @@ if (DECENTTREE_FLAGS MATCHES "libcxx")
     set(STD_LIB "c++abi")
 endif()
 
-set(THREAD_LIB "")
-if (NOT DECENTTREE_FLAGS MATCHES "single")
-    if (MSVC)
-        if (BINARY32)
-            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${PROJECT_SOURCE_DIR}/lib32")
-            set(THREAD_LIB "pthreadVC2")
-        else()
-            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${PROJECT_SOURCE_DIR}/lib")
-            set(THREAD_LIB "pthreadVC2")
-        endif()
-    elseif(CLANG AND WIN32)
-        if (BINARY32)
-            target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
-        else()
-            target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll)
-        endif()
-#        set(THREAD_LIB "ompstatic")
+if(CLANG AND WIN32)
+    if (BINARY32)
+        target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll)
+    else()
+        target_link_libraries(decenttree ${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll)
     endif()
-
-    if (CLANG AND BINARY32)
-        set (ATOMIC_LIB "atomic")
-    endif()
-
 endif()
 
 # basic linking librararies
 target_link_libraries(decenttree vectorclass
-    ${PLATFORM_LIB} ${STD_LIB} ${THREAD_LIB} ${ATOMIC_LIB})
+    ${PLATFORM_LIB} ${STD_LIB})
 
 # MPI libraries
 if (DECENTTREE_FLAGS MATCHES "mpi")
@@ -698,6 +638,9 @@ if (WIN32)
         ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "decenttree${EXE_SUFFIX}.exe" "decenttree${EXE_SUFFIX}-click.exe")
     endif()
 endif()
+
+add_subdirectory(example)
+add_subdirectory(pydecenttree)
 
 ##############################################################
 # add the install targets
