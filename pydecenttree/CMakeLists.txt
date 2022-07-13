@@ -1,8 +1,9 @@
-find_package(PythonInterp 3.5 REQUIRED)
-find_package(PythonLibs   3.5 REQUIRED)
+# was: find_package(PythonInterp 3.5 REQUIRED)
+# was: find_package(PythonLibs   3.5 REQUIRED)
+find_package(Python3 COMPONENTS Interpreter NumPy)
 message("Python Include directory: ${PYTHON_INCLUDE_DIR}")
 include_directories(${PYTHON_INCLUDE_DIR})
-message("Python Libraries:         ${PYTHON_LIBRARIES}")
+#message("Python Libraries:         ${PYTHON_LIBRARIES}")
 
 exec_program(${PYTHON_EXECUTABLE}
              ARGS "-c \"import numpy; print(numpy.get_include())\""
@@ -36,7 +37,7 @@ add_library(pydecenttree SHARED
 #   progress.cpp for progress bar stuff, progress_display class.
 #   operatingsystem.cpp for isStandardOutputATerminal()
 
-target_link_libraries(pydecenttree ${PYTHON_LIBRARIES})
+target_link_libraries(pydecenttree ${PYTHON_LIBRARIES} Python3::NumPy)
 if(ZLIB_FOUND)
   target_link_libraries(decenttree ${ZLIB_LIBRARIES})
 else(ZLIB_FOUND)
