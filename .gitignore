@@ -5,3 +5,5 @@
 build/
 /.vscode/
 james_notes.txt
+pydecenttree/dist
+pydecenttree/pydecenttree.egg-info
