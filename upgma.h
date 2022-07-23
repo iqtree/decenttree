@@ -303,11 +303,11 @@ protected:
 
         std::vector<T> weights;
         T denominator = (T)0.0;
-        for (size_t i=0; i<row_count; ++i) {
+        for (intptr_t i=0; i<row_count; ++i) {
             weights[i]   = (T)clusters[rowToCluster[i]].countOfExteriorNodes;
             denominator += weights[i];
         }
-        for (size_t i=0; i<row_count; ++i) {
+        for (intptr_t i=0; i<row_count; ++i) {
             weights[i] /= ((T)2.0 * denominator);
         }
         if (row_count==3) {
