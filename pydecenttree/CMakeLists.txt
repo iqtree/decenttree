@@ -5,6 +5,7 @@ message("Python Include directory: ${PYTHON_INCLUDE_DIR}")
 include_directories(${PYTHON_INCLUDE_DIR})
 #message("Python Libraries:         ${PYTHON_LIBRARIES}")
 
+message("Python Executable:        ${PYTHON_INCLUDE_DIR}")
 exec_program(${PYTHON_EXECUTABLE}
              ARGS "-c \"import numpy; print(numpy.get_include())\""
              OUTPUT_VARIABLE NUMPY_INCLUDE_DIR
@@ -43,6 +44,11 @@ if(ZLIB_FOUND)
 else(ZLIB_FOUND)
   target_link_libraries(decenttree zlibstatic)
 endif(ZLIB_FOUND)
+
+if (APPLE)
+  set(CMAKE_SHARED_LIBRARY_SUFFIX .so)
+  message("Shared library suffix ${CMAKE_SHARED_LIBRARY_SUFFIX}")
+endif (APPLE)
 
 if (APPLE OR WIN32 )            
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -pthread")
