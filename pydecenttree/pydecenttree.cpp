@@ -73,9 +73,9 @@ bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
     return ok;
 }
 
-bool isVectorOfDouble(const char*   vector_name, PyObject* vector_arg,
-                      DoubleVector& doubles,     const double*& element_data,
-                      intptr_t& element_count,   std::stringstream& complaint) {
+bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
+                      DoubleVector& doubles,       const double*& element_data,
+                      size_t&       element_count, std::stringstream& complaint) {
     element_data  = nullptr;
     element_count = 0;
     if (vector_arg==nullptr) {
@@ -114,7 +114,7 @@ bool isMatrix(PyObject* arg) {
 }
 
 bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix, 
-                      const double*&     element_data, intptr_t& element_count, 
+                      const double*&     element_data, size_t&   element_count, 
                       std::stringstream& complaint) {            
     element_count = 0;
     if (!isMatrix(possible_matrix)) {
@@ -177,7 +177,7 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
     int            precision         = 6; //should be default precision
     int            verbosity         = 0; //>0 to say what's happening
     const double*  distance_data     = nullptr;
-    intptr_t       distance_entries  = 0;
+    size_t         distance_entries  = 0;
     PyObject*      sequence_arg      = nullptr;
 
 
