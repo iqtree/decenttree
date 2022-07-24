@@ -8,12 +8,13 @@
 #include <Python.h>              //yes, even on Mac OS.
 #undef   USE_VECTORCLASS_LIBRARY
 #define  USE_VECTORCLASS_LIBRARY 1 //Woo!
-#define  NO_IMPORT_ARRAY         //Ee-uw. See: https://numpy.org/doc/1.13/reference/c-api.array.html
+
+#define PY_ARRAY_UNIQUE_SYMBOL MY_PyArray_API 
 #include <numpy/arrayobject.h>   //for numpy helper functions
+
 #include <starttree.h>
 
 bool appendStrVector(PyObject* append_me, StrVector& to_me) {
-    bool      ok  = false;
 
     #if (PY_MAJOR_VERSION >= 3)
         PyObject* str = PyObject_Str(append_me);
@@ -21,16 +22,18 @@ bool appendStrVector(PyObject* append_me, StrVector& to_me) {
         PyObject* str = PyObject_Unicode(append_me);
     #endif
 
-    if (str!=nullptr) {
-        Py_ssize_t  len  = 0;
-        char const* utf8 = PyUnicode_AsUTF8AndSize(str, &len);
-        if (utf8!=nullptr)
-        {
-            to_me.emplace_back(utf8, len);
-        }
-        Py_DECREF(str);
+    if (str==nullptr) {
+        return false;
     }
-    return ok;
+
+    Py_ssize_t  len  = 0;
+    char const* utf8 = PyUnicode_AsUTF8AndSize(str, &len);
+    if (utf8!=nullptr)
+    {
+        to_me.emplace_back(utf8, len);
+    }
+    Py_DECREF(str);
+    return (utf8!=nullptr);
 }
 
 bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
@@ -63,14 +66,13 @@ bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
 }
 
 bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
-    bool   ok        = false;
     double float_val = PyFloat_AsDouble(append_me);
     if (float_val==-1.0 && PyErr_Occurred())
     {
         return false;
     }
     to_me.emplace_back(float_val);
-    return ok;
+    return true;
 }
 
 bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
@@ -106,7 +108,6 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
     element_data  = doubles.data();
     element_count = doubles.size();
     return true;
-
 }
 
 bool isMatrix(PyObject* arg) {
@@ -181,7 +182,7 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
     PyObject*      sequence_arg      = nullptr;
 
 
-    if (!PyArg_ParseTupleAndKeywords(args, keywords, "sO!O!iii", 
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "sOO|iii", 
                                         const_cast<char**>(&argument_names[0]),
                                         &algorithm_name,  &sequence_arg,
                                         &distance_arg, &number_of_threads,
