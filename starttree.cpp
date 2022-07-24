@@ -23,8 +23,14 @@
 
 namespace StartTree {
 
-extern void addBioNJ2009TreeBuilders(Factory& f);
+#ifndef USE_BIONJ_2009
+#define USE_BIONJ_2009 (1)
+#endif
+#if (USE_BIONJ_2009)
+    extern void addBioNJ2009TreeBuilders(Factory& f);
+#endif
 extern void addBioNJ2020TreeBuilders(Factory& f);
+
 //extern void addStitchupTreeBuilders (Factory& f);
 
 Factory::Factory() {
@@ -45,7 +51,9 @@ size_t Factory::getBuilderCount() {
 Factory& Factory::getInstance() {
     static Factory instance;
     if (instance.getBuilderCount()==0) {
-        addBioNJ2009TreeBuilders(instance);
+        #if (USE_BIONJ_2009)
+            addBioNJ2009TreeBuilders(instance);
+        #endif
         addBioNJ2020TreeBuilders(instance);
         //addStitchupTreeBuilders(instance);
         BuilderInterface *bench = new BenchmarkingTreeBuilder(instance, "BENCHMARK", "Benchmark");

@@ -9,7 +9,8 @@ numpy_include = numpy.get_include()
 
 module1 = Extension("pydecenttree",
                     define_macros = [('DECENT_TREE',              '1'),
-                                     ('USE_VECTORCLASS_LIBRARY',  '1')],
+                                     ('USE_VECTORCLASS_LIBRARY',  '1'),
+                                     ('USE_BIONJ_2009',           '0')],
                     sources = ["pydecenttree.cpp",  "../starttree.cpp",
                                "../bionj2.cpp",     "../flatmatrix.cpp",
                                "../utils/vectortypes.cpp",
