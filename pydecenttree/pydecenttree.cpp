@@ -78,6 +78,7 @@ bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
 bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
                       DoubleVector& doubles,       const double*& element_data,
                       size_t&       element_count, std::stringstream& complaint) {
+    //std::cout << "isVectorOfDouble\n";
     element_data  = nullptr;
     element_count = 0;
     if (vector_arg==nullptr) {
@@ -111,7 +112,16 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
 }
 
 bool isMatrix(PyObject* arg) {
-    return PyArray_Check(arg) !=0;
+    return false;
+    /*
+        std::cout << "IsMatrix (in)\n";
+        //The call to PyArray_Check was segfaulting.  
+        //Even when numpy was imported before pydecenttree.
+        //I'll come back and figure out the problem later.
+        bool isIt = PyArray_Check(arg) !=0;
+        std::cout << "IsMatrix (out)\n";
+        return isIt;
+    */
 }
 
 bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix, 
@@ -123,6 +133,7 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
                   << " is not a matrix of type Float";
         return false;
     }
+    //std::cout<<"IsMatrixOfDouble\n";
 
     PyArrayObject* matrix = reinterpret_cast<PyArrayObject*>(possible_matrix);
     if (matrix->descr->type_num != NPY_DOUBLE) {
@@ -148,6 +159,7 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
 
 bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
     #ifdef _OPENMP
+        std::cout <<"OTC OpenMP is defined\n";
         if (0<number_of_threads) {
             int maxThreadCount = omp_get_max_threads();
             if (maxThreadCount < number_of_threads ) {
@@ -181,12 +193,11 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
     size_t         distance_entries  = 0;
     PyObject*      sequence_arg      = nullptr;
 
-
     if (!PyArg_ParseTupleAndKeywords(args, keywords, "sOO|iii", 
                                         const_cast<char**>(&argument_names[0]),
                                         &algorithm_name,  &sequence_arg,
                                         &distance_arg, &number_of_threads,
-                                        &precision)) 
+                                        &precision, &verbosity)) 
     {
         return NULL;
     }        
@@ -238,9 +249,18 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
         else if (!obeyThreadCount(number_of_threads, complaint)) {
             //Will have set complaint
         }
+        else if (precision<1)
+            complaint << "Cannot have precision (" << precision << ")"
+                      << " less than 1";
         else {
             if (verbosity==0) {
                 algorithm->beSilent();
+            }
+            if (1<verbosity) {
+                std::cout << "Sequences: " << sequences.join(",") << "\n";
+                std::cout << "First two distances: " 
+                          << distance_data[0] << " and "
+                          << distance_data[1] << ".\n";
             }
             if (!algorithm->constructTreeStringInMemory
                  ( sequences, distance_data, tree_string )) {
