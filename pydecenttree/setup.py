@@ -10,14 +10,21 @@ numpy_include = numpy.get_include()
 module1 = Extension("pydecenttree",
                     define_macros = [('DECENT_TREE',              '1'),
                                      ('USE_VECTORCLASS_LIBRARY',  '1'),
+                                     ('USE_PROGRESS_DISPLAY',     '1'),
                                      ('USE_BIONJ_2009',           '0')],
                     sources = ["pydecenttree.cpp",  "../starttree.cpp",
                                "../bionj2.cpp",     "../flatmatrix.cpp",
                                "../utils/vectortypes.cpp",
-                               "../utils/stringfunctions.cpp"],
+                               "../utils/stringfunctions.cpp",
+                               "../utils/progress.cpp",
+                               "../utils/operatingsystem.cpp" ],
                     include_dirs = [numpy_include, "..", "../build"],
                     extra_compile_args=['-std=c++11'],
                     language = "c++")
+
+#If USE_PROGRESS_DISPLAY is set, ../utils/progress.cpp
+#and ../utils/operatingsystem.cpp are needed.
+
 
 #Todo: Consider adding additional macros:
 #USE_PROGRESS_DISPLAY=1
@@ -31,9 +38,8 @@ module1 = Extension("pydecenttree",
 #    ../bionj.cpp
 #Compression:
 #    ../utils/gzstream.cpp ../utils/gzstream.h
-#Progress bars:
-#    ../utils/progress.cpp ../utils/progress.h
-#    ../utils/operatingsystem.cpp ../utils/operatingsystem.h
+#
+
 
 def main():
     setup(name="pydecenttree",
