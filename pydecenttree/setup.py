@@ -25,7 +25,6 @@ module1 = Extension("pydecenttree",
 #If USE_PROGRESS_DISPLAY is set, ../utils/progress.cpp
 #and ../utils/operatingsystem.cpp are needed.
 
-
 #Todo: Consider adding additional macros:
 #USE_PROGRESS_DISPLAY=1
 #USE_GZSTREAM=1
@@ -39,7 +38,6 @@ module1 = Extension("pydecenttree",
 #Compression:
 #    ../utils/gzstream.cpp ../utils/gzstream.h
 #
-
 
 def main():
     setup(name="pydecenttree",
