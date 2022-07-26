@@ -14,25 +14,38 @@
 
 #include <starttree.h>
 
-bool appendStrVector(PyObject* append_me, StrVector& to_me) {
+class ScopedPyObjectPtr {
+public:
+    PyObject *ptr;
+    ScopedPyObjectPtr(): ptr(nullptr) {}
+    ScopedPyObjectPtr(PyObject* rhs) : ptr(rhs) {}
+    ~ScopedPyObjectPtr() {
+        if (ptr!=nullptr) {
+            Py_DECREF(ptr);
+        }
+    }
+    bool operator==(const ScopedPyObjectPtr& rhs) { return ptr == rhs.ptr; }
+    bool operator==(const PyObject* rhs) { return ptr == rhs; }
+    operator  PyObject*() const { return ptr; }
+    PyObject* getPtr()    const { return ptr; }
+    bool      isNull()    const { return ptr==nullptr; }
+};
 
+bool appendStrVector(PyObject* append_me, StrVector& to_me) {
     #if (PY_MAJOR_VERSION >= 3)
-        PyObject* str = PyObject_Str(append_me);
+        ScopedPyObjectPtr str ( PyObject_Str(append_me) );
     #else
-        PyObject* str = PyObject_Unicode(append_me);
+        ScopedPyObjectPtr str ( PyObject_Unicode(append_me) );
     #endif
 
-    if (str==nullptr) {
+    if (str.isNull()) {
         return false;
     }
-
     Py_ssize_t  len  = 0;
     char const* utf8 = PyUnicode_AsUTF8AndSize(str, &len);
-    if (utf8!=nullptr)
-    {
+    if (utf8!=nullptr) {
         to_me.emplace_back(utf8, len);
     }
-    Py_DECREF(str);
     return (utf8!=nullptr);
 }
 
@@ -42,36 +55,62 @@ bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
         complaint << vector_name << " was not supplied.";
         return false;
     }
-    PyObject* seq = PySequence_List(sequence_arg);
+    ScopedPyObjectPtr seq = PySequence_List(sequence_arg);
     if (seq==nullptr) {
         complaint << vector_name << " is not a sequence.";
         return false;
     }
-    int number_of_sequences = PySequence_Fast_GET_SIZE(seq);
+    int number_of_sequences = PySequence_Fast_GET_SIZE(seq.getPtr());
     for (int i=0; i<number_of_sequences; ++i) {
-        PyObject* item = PySequence_Fast_GET_ITEM(seq, i);
+        PyObject* item = PySequence_Fast_GET_ITEM(seq.getPtr(), i);
         if (item==nullptr) {
             complaint << vector_name << " could not access item " << i << ".";
             return false;
         }
-        if (!appendStrVector(item, sequences)) 
-        {
-            Py_DECREF(seq);
+        if (!appendStrVector(item, sequences)) {
             complaint << vector_name << " could not convert item " << i << " to string.";
             return false;
         }
     }
-    Py_DECREF(seq);
     return true;
 }
 
 bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
     double float_val = PyFloat_AsDouble(append_me);
-    if (float_val==-1.0 && PyErr_Occurred())
-    {
+    if (float_val==-1.0 && PyErr_Occurred()) {
         return false;
     }
     to_me.emplace_back(float_val);
+    return true;
+}
+
+bool appendDoublesToVector(const std::string& row_vector_name, PyObject* seq_for_row, 
+                           DoubleVector& doubles, size_t& row_width_here, 
+                           std::stringstream& complaint ) {
+    //Assumptions: 1. seq_for_row is a sequence (it always is, when called
+    //                from isVectorOfDouble)
+    //             2. Caller owns req_for_row and controls its reference count.
+    //             3. row_width_here has already been initialized (and will
+    //                be incremented, for each item read from seq_for_row)
+    //
+    int number_of_items = PySequence_Fast_GET_SIZE(seq_for_row);
+    for (int i=0; i<number_of_items; ++i) {
+        PyObject* item = PySequence_Fast_GET_ITEM(seq_for_row, i);
+        if (item==nullptr) {
+            complaint << row_vector_name << " could not access item " << i << ".";
+            return false;
+        }
+        if (PySequence_Check(item)==1) {
+            complaint << " item " << i << " of " << row_vector_name 
+                      << " was a sequence (not allowed).";
+        }
+        else if (!appendDoubleVector(item, doubles)) {
+            complaint << row_vector_name << ": could not convert item " 
+                      << i << " to double.";
+            return false;
+        }
+        ++row_width_here;
+    }
     return true;
 }
 
@@ -79,32 +118,65 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
                       DoubleVector& doubles,       const double*& element_data,
                       size_t&       element_count, std::stringstream& complaint) {
     //std::cout << "isVectorOfDouble\n";
+    size_t row_count = 0; //Number of row sequences read
+    size_t row_width = 0; //Width of all row sequences seen so far
     element_data  = nullptr;
     element_count = 0;
     if (vector_arg==nullptr) {
         complaint << vector_name << " was not supplied.";
         return false;
     }
-    PyObject* seq = PySequence_List(vector_arg);
+    ScopedPyObjectPtr seq = PySequence_List(vector_arg);
     if (seq==nullptr) {
         complaint << vector_name << " is not a sequence.";
         return false;
     }
-    int number_of_sequences = PySequence_Fast_GET_SIZE(seq);
-    for (int i=0; i<number_of_sequences; ++i) {
-        PyObject* item = PySequence_Fast_GET_ITEM(seq, i);
+    int number_of_items = PySequence_Fast_GET_SIZE(seq.getPtr());
+    for (int i=0; i<number_of_items; ++i) {
+        PyObject* item = PySequence_Fast_GET_ITEM(seq.getPtr(), i);
         if (item==nullptr) {
             complaint << vector_name << " could not access item " << i << ".";
             return false;
         }
-        if (!appendDoubleVector(item, doubles)) 
-        {
-            Py_DECREF(seq);
-            complaint << vector_name << " could not convert item " << i << " to string.";
+        if (PySequence_Check(item)==1) {
+            ScopedPyObjectPtr seq_for_row = PySequence_List(item);
+            //Nested sequence
+            std::stringstream row_seq_name;
+            size_t            row_width_here=0;
+            row_seq_name << "row [" << i << "] of " << vector_name;
+            std::string row_vector_name = row_seq_name.str();
+            if (!appendDoublesToVector(row_vector_name, seq_for_row, 
+                                       doubles, row_width_here, complaint )) {
+                return false;
+            }
+            if (row_count==0) {
+                if (row_width_here<doubles.size()) {
+                    complaint << "can't mix scalars and row vectors"
+                              << " in " << vector_name << ".";
+                    return false;
+                }
+                row_width = row_width_here;
+            }
+            ++row_count;
+            if (row_width!=row_width_here) {
+                complaint << row_vector_name << " has rank "
+                    << row_width_here << " that differs with"
+                    << " the rank (" << row_width << ") of previous rows"
+                    << "\n";
+                return false;
+            }
+        }
+        else if (row_count!=0) {
+            complaint << "can't mix row vectors and scalars"
+                        << " in " << vector_name << ".";
             return false;
         }
+        else if (!appendDoubleVector(item, doubles)) {
+            complaint << vector_name << " could not convert item " 
+                      << i << " to double.";
+            return false;
+        } 
     }
-    Py_DECREF(seq);
 
     element_data  = doubles.data();
     element_count = doubles.size();
