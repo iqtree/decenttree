@@ -27,8 +27,12 @@ import pydecenttree;
 # s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], [[0,1,1] ,[1,0,1] ,[2,2]], -1, 6, 2)
 # should fail, because third row only has two items
 
-s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], [[0,1,1] ,[1,0,1] ,[1,1,0]], -1, 6, 2)
-print (s)
+#s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], [[0,1,1] ,[1,0,1] ,[1,1,0]], -1, 6, 2)
+#print (s)
 #should work and output (cat:0.5,dog:0.5,rat:0.5).
+
+dm = numpy.array([[0,2,2], [2,0,2], [2,2,0]], dtype=numpy.double)
+s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], dm, -1, 6, 2)
+print (s)
 
 
