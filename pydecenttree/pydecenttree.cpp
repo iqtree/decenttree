@@ -117,7 +117,6 @@ bool appendDoublesToVector(const std::string& row_vector_name, PyObject* seq_for
 bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
                       DoubleVector& doubles,       const double*& element_data,
                       size_t&       element_count, std::stringstream& complaint) {
-    //std::cout << "isVectorOfDouble\n";
     size_t row_count = 0; //Number of row sequences read
     size_t row_width = 0; //Width of all row sequences seen so far
     element_data  = nullptr;
@@ -184,16 +183,7 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
 }
 
 bool isMatrix(PyObject* arg) {
-    return false;
-    /*
-        std::cout << "IsMatrix (in)\n";
-        //The call to PyArray_Check was segfaulting.  
-        //Even when numpy was imported before pydecenttree.
-        //I'll come back and figure out the problem later.
-        bool isIt = PyArray_Check(arg) !=0;
-        std::cout << "IsMatrix (out)\n";
-        return isIt;
-    */
+    return PyArray_API!=nullptr && PyArray_Check(arg)!=0;
 }
 
 bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix, 
@@ -205,7 +195,6 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
                   << " is not a matrix of type Float";
         return false;
     }
-    //std::cout<<"IsMatrixOfDouble\n";
 
     PyArrayObject* matrix = reinterpret_cast<PyArrayObject*>(possible_matrix);
     if (matrix->descr->type_num != NPY_DOUBLE) {
@@ -372,6 +361,7 @@ static PyModuleDef pydecenttree = {
 
 extern "C" {
     PyMODINIT_FUNC PyInit_pydecenttree(void) {
+        import_array();
         return PyModule_Create(&pydecenttree);
     }
 };
