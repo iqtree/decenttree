@@ -7,6 +7,26 @@ numpy_include = numpy.get_include()
 #python_include = get_paths() 
 #(but this doesn't seem necessary, so I've commented it out)
 
+dirs   = [numpy_include, "..", "../build"]
+flags  = ['-std=c++11']
+link_flags = []
+
+#
+#This is how I hacked OpenMP support on OS X 12.4
+#Outside setup.py.. run these:
+#
+#>  export CFLAGS="-Xpreprocessor -fopenmp $CFLAGS"
+#>  export CXXFLAGS="-Xpreprocessor -fopenmp $CXXFLAGS"
+#
+#(you need to set both CFLAGS and CXXFLAGS!  Don't know why)
+#...but I get lots of repeated warnings out of signal.h when I build.
+#
+import os
+if ('CXXFLAGS' in os.environ):
+    if (os.environ['CXXFLAGS'].find('-Xpreprocessor')!=-1):
+        link_flags.append('-lomp')
+        dirs.append('/Library/Developer/CommandLineTools/SDKs/MacOSX10.15.sdk/usr/include')
+
 module1 = Extension("pydecenttree",
                     define_macros = [('DECENT_TREE',              '1'),
                                      ('USE_VECTORCLASS_LIBRARY',  '1'),
@@ -18,8 +38,9 @@ module1 = Extension("pydecenttree",
                                "../utils/stringfunctions.cpp",
                                "../utils/progress.cpp",
                                "../utils/operatingsystem.cpp" ],
-                    include_dirs = [numpy_include, "..", "../build"],
-                    extra_compile_args=['-std=c++11'],
+                    include_dirs = dirs,
+                    extra_compile_args = flags,
+                    extra_link_args= link_flags,
                     language = "c++")
 
 #If USE_PROGRESS_DISPLAY is set, ../utils/progress.cpp
