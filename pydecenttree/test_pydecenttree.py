@@ -31,8 +31,11 @@ import pydecenttree;
 #print (s)
 #should work and output (cat:0.5,dog:0.5,rat:0.5).
 
+#print (','.join(pydecenttree.getAlgorithmNames()))
+#print ('\n'.join(pydecenttree.getAlgorithmNames(1)))
+
 dm = numpy.array([[0,2,2], [2,0,2], [2,2,0]], dtype=numpy.double)
-s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], dm, -1, 6, 2)
+s = pydecenttree.constructTree('NJ-R', ['cat','dog', 'rat'], dm, -1, 6, 0)
 print (s)
 
 

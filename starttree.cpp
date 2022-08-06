@@ -89,6 +89,21 @@ std::string Factory::getListOfTreeBuilders() const {
     return list.str();
 }
 
+StrVector Factory::getVectorOfTreeBuilderNames(bool withDescriptions) const {
+    StrVector vector;
+    for (auto it=mapOfTreeBuilders.begin();
+         it!=mapOfTreeBuilders.end(); ++it) {
+        auto builder     = (*it).second;
+        std::string name = builder->getName();
+        if (withDescriptions) {
+            name += ": ";
+            name += builder->getDescription();
+        }
+        vector.emplace_back(name);
+    }
+    return vector;
+}
+
 void Factory::advertiseTreeBuilder(BuilderInterface* builder) {
     std::string name = builder->getName();
     addBuilder( name, builder );

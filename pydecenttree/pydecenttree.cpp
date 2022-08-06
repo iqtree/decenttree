@@ -220,7 +220,7 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
 
 bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
     #ifdef _OPENMP
-        std::cout <<"OTC OpenMP is defined\n";
+        std::cout <<"OpenMP is defined\n";
         if (0<number_of_threads) {
             int maxThreadCount = omp_get_max_threads();
             if (maxThreadCount < number_of_threads ) {
@@ -235,6 +235,14 @@ bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
         //Ignore it.  Some day, maybe complain.
     #endif
     return true;
+}
+
+PyObject* StringToPythonString(const std::string& convert_me) {
+    #if PY_MAJOR_VERSION >= 3
+        return PyUnicode_FromString(convert_me.c_str());
+    #else
+        return PyString_FromString(convert_me.c_str());
+    #endif
 }
 
 static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args, 
@@ -260,7 +268,7 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
                                         &distance_arg, &number_of_threads,
                                         &precision, &verbosity)) 
     {
-        return NULL;
+        return nullptr;
     }        
     std::stringstream complaint;
     complaint << "Error: ";
@@ -335,20 +343,52 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
         PyErr_SetString(PyExc_TypeError, complaint.str().c_str());
         return nullptr;
     } else {
-        PyObject* tree_result;
-        #if PY_MAJOR_VERSION >= 3
-            tree_result = PyUnicode_FromString(tree_string.c_str());
-        #else
-            tree_result = PyString_FromString(tree_string.c_str());
-        #endif
+        PyObject* tree_result = StringToPythonString(tree_string);
         return tree_result;
     }
 }
 
-static PyMethodDef pydecenttree_methods[] = {
+PyObject* StringVectorToPythonList(const StrVector& string_vector) {
+    PyObject* list = PyList_New(string_vector.size());
+    for (size_t i=0; i < string_vector.size() ; ++i ) {
+        const std::string& name = string_vector[i];
+        PyObject* item = StringToPythonString(name);
+        if (item==nullptr) {
+            continue;
+        }
+        if (PyList_SetItem(list,i,item) != 0) {
+            Py_DECREF(item);
+            Py_DECREF(list);
+            return nullptr;
+        }
+    }
+    return list;
+}
+
+static PyObject* pydecenttree_getAlgorithmNames
+    ( PyObject* self, PyObject* args, PyObject* keywords ) {
+    const char* argument_names[] = {
+        "descriptions", nullptr
+    };
+    int descriptions = 0;
+    if (!PyArg_ParseTupleAndKeywords(args, keywords, "|i", 
+                                     const_cast<char**>(&argument_names[0]), 
+                                     &descriptions)) {
+        return nullptr;
+    }
+    bool withDescriptions = (descriptions!=0);
+    StartTree::Factory& factory = StartTree::Factory::getInstance();
+    auto names   = factory.getVectorOfTreeBuilderNames(withDescriptions);
+    return StringVectorToPythonList(names);
+}
+
+static PyMethodDef pydecenttree_methods[3] = {
     { "constructTree", (PyCFunction) pydecenttree_constructTree,
-        METH_VARARGS | METH_KEYWORDS, "Construct tree" },
-    { NULL, NULL, 0, NULL }
+      METH_VARARGS | METH_KEYWORDS, "Construct tree" },
+    { "getAlgorithmNames", (PyCFunction) pydecenttree_getAlgorithmNames,
+      METH_VARARGS | METH_KEYWORDS, 
+      "Return a list of available algorithms" },
+    { NULL, NULL, 0, NULL },
 };
 
 static PyModuleDef pydecenttree = {

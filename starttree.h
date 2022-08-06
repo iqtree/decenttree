@@ -89,6 +89,7 @@ namespace StartTree
         static BuilderInterface* getTreeBuilderByName(const std::string& name);
         static BuilderInterface* getTreeBuilderByName(const char* name);
         std::string getListOfTreeBuilders() const;
+        StrVector getVectorOfTreeBuilderNames(bool withDescriptions) const;
     };
 
     template <class B> class Builder: public BuilderInterface
