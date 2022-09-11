@@ -72,7 +72,7 @@ void showBanner() {
 void showUsage() {
     std::cout << "Usage: decenttree (-fasta [fastapath] (-strip-name [stripped]) \n";
     std::cout << "       (-name-replace [reps]) (-truncate-name-at [chars])\n";
-    std::cout << "       (-uncorrected) (-no-matrix) (-dist-out [distout]\n";
+    std::cout << "       (-uncorrected) (-no-matrix) (-dist-out [distout]) (-out-format [shape])\n";
     std::cout << "       (-alphabet [states]) (-unknown [chars]) (-not-dna))\n";
     std::cout << "       -in [mldist] (-c [level]) (-f [prec]) -out [newick] -t [algorithm]\n";
     std::cout << "       (-nt [threads]) (-gz) (-no-banner) (-q)\n";
@@ -85,6 +85,8 @@ void showUsage() {
     std::cout << "             (may be shorter than [strippped]; if so first character is the default.\n";
     std::cout << "[distout]    is the path, of a file, into which the distance matrix is to be written\n";
     std::cout << "             (possibly in a .gz format)\n";
+    std::cout << "[shape]      is the shape of a distance matrix output\n";
+    std::cout << "             (square for square, upper or lower for triangular)\n";
     std::cout << "[states]     are the characters for each site\n";
     std::cout << "[chars]      are the characters that indicate a site has an unknown character.\n";
     std::cout << "[mldist]     is the path of a distance matrix file (which may be in .gz format)\n";

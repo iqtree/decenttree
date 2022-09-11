@@ -1,0 +1,50 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "decenttree",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/decenttree",
+            "args": [ "-in", "../example/example.dist", 
+                      "-out", "nj.newick", 
+                      "-t", "NJ", "-nt", "16", 
+                      "-no-banner"],
+            "cwd": "${workspaceRoot}/build",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+        {
+            "name": "dmatrix",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/decenttree",
+            "args": [ "-phylip", "../example/example.phy", 
+                      "-dist-out", "example2.dist", 
+                      "-uncorrected",
+                      "-out-format", "lower",
+                      "-no-banner", "-no-out", "-t", "NONE"],
+            "cwd": "${workspaceRoot}/build",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        },
+
+        {
+            "name": "differentvector",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/example/differentvector",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/build/example",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb"
+        }
+    ]
+}
