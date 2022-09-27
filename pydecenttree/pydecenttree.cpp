@@ -9,8 +9,10 @@
 #undef   USE_VECTORCLASS_LIBRARY
 #define  USE_VECTORCLASS_LIBRARY 1 //Woo!
 
+#if (USE_NUMPY_HEADERS)
 #define PY_ARRAY_UNIQUE_SYMBOL MY_PyArray_API 
 #include <numpy/arrayobject.h>   //for numpy helper functions
+#endif 
 
 #include <starttree.h>
 
@@ -183,7 +185,11 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
 }
 
 bool isMatrix(PyObject* arg) {
-    return PyArray_API!=nullptr && PyArray_Check(arg)!=0;
+    #if (USE_NUMPY_HEADERS)
+        return PyArray_API!=nullptr && PyArray_Check(arg)!=0;
+    #else
+        return false;
+    #endif
 }
 
 bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix, 
@@ -196,26 +202,30 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
         return false;
     }
 
-    PyArrayObject* matrix = reinterpret_cast<PyArrayObject*>(possible_matrix);
-    if (matrix->descr->type_num != NPY_DOUBLE) {
-        complaint << matrix_name << " matrix"
-                  << " is not a matrix of type Float";
+    #if (!USE_NUMPY_HEADERS)
         return false;
-    }
+    #else
+        PyArrayObject* matrix = reinterpret_cast<PyArrayObject*>(possible_matrix);
+        if (matrix->descr->type_num != NPY_DOUBLE) {
+            complaint << matrix_name << " matrix"
+                    << " is not a matrix of type Float";
+            return false;
+        }
 
-    auto dimensions = matrix->nd;
-    if (dimensions < 1 || 2<dimensions) {
-        complaint << matrix_name << "matrix"
-                  << " has " << dimensions << " dimensions"
-                  << " (only 1 and 2 dimensional matrices are allowed).";
-        return false;                  
-    }
-    element_count = 1;
-    for (int d = 0; d < dimensions; ++d) {
-        element_count *= matrix->dimensions[d];
-    }
-    element_data = reinterpret_cast<double*> PyArray_DATA(matrix);
-    return true;
+        auto dimensions = matrix->nd;
+        if (dimensions < 1 || 2<dimensions) {
+            complaint << matrix_name << "matrix"
+                    << " has " << dimensions << " dimensions"
+                    << " (only 1 and 2 dimensional matrices are allowed).";
+            return false;                  
+        }
+        element_count = 1;
+        for (int d = 0; d < dimensions; ++d) {
+            element_count *= matrix->dimensions[d];
+        }
+        element_data = reinterpret_cast<double*> PyArray_DATA(matrix);
+        return true;
+    #endif
 }
 
 bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
@@ -401,7 +411,9 @@ static PyModuleDef pydecenttree = {
 
 extern "C" {
     PyMODINIT_FUNC PyInit_pydecenttree(void) {
-        import_array();
+        #if (USE_NUMPY_HEADERS)
+            import_array();
+        #endif
         return PyModule_Create(&pydecenttree);
     }
 };
