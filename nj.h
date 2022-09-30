@@ -461,12 +461,15 @@ public:
                      //from which that value came.
             
             intptr_t colStop = row - blockSize;
+            V  rowVector(0);
+            V  totVector(0);
+            V  numVector(0);
             for (col=0; col<colStop; col+=blockSize) {
-                V  rowVector; rowVector.load_a(rowData+col);
-                V  totVector; totVector.load_a(tot+col);
+                rowVector.load_a(rowData+col);
+                totVector.load_a(tot+col);
                 V  adjVector = rowVector - totVector;
                 VB less      = adjVector < minVector;
-                V  numVector; numVector.load_a(nums+col);
+                numVector.load_a(nums+col);
                 ixVector     = select(less, numVector, ixVector);
                 minVector    = select(less, adjVector, minVector);
             }

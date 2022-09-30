@@ -151,7 +151,7 @@ inline size_t conventionalHammingDistance(char unknown,
 inline uint64_t conventionalCountBitsSetInEither(uint64_t* a, uint64_t* b,
                                                size_t count /*in uint64_t*/) {
     uint64_t bits_set = 1;
-    for (int i=0; i<count; ++i) {
+    for (size_t i=0; i<count; ++i) {
         uint64_t bitsInEither = a[i] | b[i];
         uint64_t delta;
         #if (defined (__GNUC__) || defined(__clang__)) && !defined(CLANG_UNDER_VS)
@@ -175,7 +175,7 @@ inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b, size_t count) {
 #else
 
 #ifdef _MSC_VER
-    #define ALIGN_32(x) __declspec(align(32)) x
+    #define ALIGN_32(x) __declspec(align(32)) x = {0}
 #else
     #define ALIGN_32(x) x __attribute__((aligned(32)))
 #endif
@@ -194,12 +194,12 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
     DV       distance_vector  = 0;
     if (W <= seqLen) {
         blockStop  = seqLen - (seqLen & (W-1));
-        CV blockA; //next 32 bytes from a
-        CV blockB; //next 32 bytes from b
+        CV blockA(0); //next 32 bytes from a
+        CV blockB(0); //next 32 bytes from b
         CV blockU  = unknown;
         ALIGN_32(uint64_t vec[W/8]);
         ALIGN_32(uint64_t res[W/8]);
-        DV distance_bump_vector;
+        DV distance_bump_vector(0);
         for ( size_t i=0; i<blockStop; i+=W) {
             
             //Compare W characters at a time
@@ -248,11 +248,11 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
                                     size_t count /*in uint64_t*/) {
     //Assumes: W divides count
     V count_vector  = 0;
-    V aData;
-    V bData;
+    V aData = 0;
+    V bData = 0;
     ALIGN_32(uint64_t vec[W]);
     ALIGN_32(uint64_t res[W]);
-    V dData;
+    V dData = 0;
     for (int i=0; i<count; i+=W) {
         aData.load(a+i);
         bData.load(b+i);
@@ -309,7 +309,8 @@ inline size_t sumForUnknownCharacters
     int pos = 0;
     if (blockSize < seqLen) {
         //Next line assumes that: blockSize is power of 2
-        intptr_t blockStop = seqLen - (seqLen & (blockSize - 1)); 
+        int blockSize_less_1 = blockSize - 1;
+        intptr_t blockStop = seqLen - (seqLen & (blockSize_less_1)); 
         for (; pos < blockStop; pos += blockSize) {
             Vec32c blockRead;
             blockRead.load(sequence + pos);

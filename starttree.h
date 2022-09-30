@@ -199,7 +199,7 @@ namespace StartTree
                 return false;
             }
             constructTreeWith(builder);
-            double rms;
+            double rms = 0;
             if (!silent && builder.calculateRMSOfTMinusD(distanceMatrix, 
                                                          sequenceNames.size(), rms)) {
                 std::cout << "Root Mean Square Error was " << rms << std::endl;

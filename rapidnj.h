@@ -379,8 +379,9 @@ public:
         #endif
         for (int b=0; b<threadCount; ++b) {
             T      qBestForThread = qBest;
-            size_t rStart         = (b*rSize)     / threadCount;
-            size_t rStop          = ((b+1)*rSize) / threadCount;
+            int    b_plus_1       = (b + 1);
+            size_t rStart         = (b*rSize)        / threadCount;
+            size_t rStop          = (b_plus_1*rSize) / threadCount;
             for (size_t r=rStart; r < rStop
                     && rowMinima[r].value < infiniteDistance; ++r) {
                 intptr_t rowA     = rowMinima[r].row;
@@ -649,6 +650,9 @@ public:
 
         V    best_hc_vector ((T)(infiniteDistance));
         V    best_ix_vector ((T)(-1));
+        V    raw(0);
+        V    c_tot(0);
+        V    ix(0);
 
         for (size_t i=0; i<v_partners; i+=block_size) {
             for (int j=0; j<block_size; ++j) {
@@ -656,9 +660,9 @@ public:
                 blockCluster[j] = tot[k];
                 blockIndex[j]   = (T)k;
             }
-            V  raw;    raw.load(rowData+i);
-            V  c_tot;  c_tot.load(blockCluster);
-            V  ix;     ix.load(blockIndex);
+            raw.load(rowData+i);
+            c_tot.load(blockCluster);
+            ix.load(blockIndex);
             V  hc   = raw - c_tot; //subtract cluster totals to get half-cooked distances?
             VB less = hc < best_hc_vector; //which are improvements?
             best_hc_vector = select(less, hc, best_hc_vector);

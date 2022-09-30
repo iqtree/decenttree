@@ -363,7 +363,7 @@ template <class T=double> struct StitchupGraph {
     bool writeTreeToFile(int precision, const std::string &treeFilePath, 
                          bool isFileToBeOpenedForAppending, 
                          bool subtreeOnly, F& out) const {
-        bool success = false;
+        bool success = false;           
         std::string desc = "Writing STITCH tree to ";
         desc+=treeFilePath;
         #if USE_PROGRESS_DISPLAY
@@ -373,7 +373,7 @@ template <class T=double> struct StitchupGraph {
         #endif
         out.exceptions(std::ios::failbit | std::ios::badbit);
         try {
-            auto openMode = isFileToBeOpenedForAppending
+            std::ios_base::openmode openMode = isFileToBeOpenedForAppending
                           ? std::ios_base::app : std::ios_base::trunc;
             openMode |= std::ios_base::out;  
             out.open(treeFilePath.c_str(), openMode);
@@ -564,8 +564,8 @@ public:
         #endif
         for (intptr_t join = 0; join + 1 < row_count; ++join) {
             LengthSortedStitch<T> shortest;
-            size_t source;
-            size_t dest;
+            size_t source = 0;
+            size_t dest   = 0;
             do {
                 shortest = heap.pop_min();
                 source   = shortest.source;

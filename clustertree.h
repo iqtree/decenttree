@@ -41,8 +41,8 @@ template <class T=double> struct Link {
     //a cluster (clusters are identified by index).
     //
 public:
-    size_t  clusterIndex;
-    T       linkDistance;
+    intptr_t clusterIndex;
+    T        linkDistance;
     Link(size_t index, T distance) 
         : clusterIndex(index), linkDistance(distance) {
     }
@@ -127,7 +127,10 @@ public:
                                     LeafDistanceVector& ldv) {
         //Running time proportional to subtree size
         std::vector<LeafDistance> stack;
-        stack.emplace_back(top, branch_length);
+        LeafDistance top_node;
+        top_node.first  = top;
+        top_node.second = branch_length;
+        stack.emplace_back(top_node);
         while (!stack.empty()) {
             LeafDistance b = stack.back();
             stack.pop_back();
@@ -225,7 +228,7 @@ public:
                          F& out) const {
         out.exceptions(std::ios::failbit | std::ios::badbit);
         try {
-            auto openMode = isOutputToBeAppended
+            std::ios_base::openmode openMode = isOutputToBeAppended
                           ? std::ios_base::app : std::ios_base::trunc;
             openMode |= std::ios_base::out;  
             out.open(treeFilePath.c_str(), openMode );

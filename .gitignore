@@ -3,10 +3,10 @@
 .settings
 .project
 .vs
-Debug
 x64
-decentTree.vcxproj.user
+Debug
 build/
+decentTree.vcxproj.user
 james_notes.txt
 pydecenttree/dist
 pydecenttree/pydecenttree.egg-info
