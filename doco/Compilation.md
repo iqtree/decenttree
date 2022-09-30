@@ -12,8 +12,10 @@ on Macintosh, or on Linux (using GCC).  It hasn't been tested with other compile
 | Windows          | 32-bit   | Parallelization | Ensure that lib32/libiomp5md.dll and lib32/libiomp5md.lib.dll are in the PATH |
 
 <h2>Compiling on specific operating systems</h2>
+Instructions are (or will shortly be) available for compilying pydecenttree on the following operating systems:
 
  - [Macintosh OS X](Compilation_on_MacOS_X.md)
  - [Linux](Compilation_on_Linux.md)
- - [Windows] (Compilation_on_Windows.md)
+ - [Windows](Compilation_on_Windows.md)
+
 

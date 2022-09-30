@@ -1,4 +1,4 @@
-<h1>Code examples</h1>
+<h1>Code examples for decenttree</h1>
 <h2>List of files</h2>
 
 |File|Content|
