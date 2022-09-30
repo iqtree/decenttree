@@ -222,10 +222,16 @@ public:
             clusters.addCluster(name);
         }
         setRank(names.size()); //sets original_rank
+
+        //
+        //A weird thing here. Visual Studio C++ doesn't like 0<=r.
+        //But it is perfectly happy with r>=0.  That's a bug,
+        //but it can't be helped.
+        //
         #ifdef _OPENMP
         #pragma omp parallel for schedule(dynamic) if(1<threadCount)
         #endif
-        for (int r=original_rank-1; 0<=r; --r ) {
+        for (intptr_t r=original_rank-1; r>=0; --r ) {
             const double* row       = matrix + r * original_rank;
             MatrixEntry*  data      = cluster_sorted_start[r];
             MatrixEntry*  unsorted  = cluster_unsorted_start[r];
@@ -324,7 +330,8 @@ public:
             int high_row      = (best_row < other_row) ? other_row : best_row;
             T   raw_Dxy       = clusterDistance(other_cluster, best_cluster);
             row_cluster[low_row]  = next_cluster_number;
-            row_cluster[high_row] = row_cluster[n-1];   
+            int n_less_1          = n - 1;
+            row_cluster[high_row] = row_cluster[n_less_1];
             mergeTime -= getRealTime();
             mergeClusters(best_cluster, other_cluster, next_cluster_number,
                           raw_Dxy, n, is_rooted);
@@ -478,11 +485,12 @@ protected:
 
                         int low_row  = cluster_row[x];
                         int high_row = cluster_row[y];
+                        int n_less_1 = n - 1;
                         if (high_row<low_row) {
                             std::swap(low_row, high_row);
                         }
                         row_cluster[low_row]  = next_cluster_number;
-                        row_cluster[high_row] = row_cluster[n-1];   
+                        row_cluster[high_row] = row_cluster[n_less_1];   
                         mergeTime -= getRealTime();
                         mergeClusters(x, y, next_cluster_number,
                                         (T)0, n, false);
@@ -532,8 +540,15 @@ protected:
 
         global_best_dist = infiniteDistance;
         FNJ_TRACE("\nPreview for n=" << n << "\n");
+
+        //Problem here: reduction(min) not supported in Visual Studio C++ 19 on Windows
+        //because Visual Studio C++ only supports OpenMP 2.0, and reduction(min) is OpenMP 3.1
         #ifdef _OPENMP
+        #ifndef _MSC_VER
         #pragma omp parallel for reduction(min:global_best_dist)
+        #else
+        #pragma omp parallel for
+        #endif
         #endif
         for (int r = 0; r < n; ++r ) {
             int  y     = row_cluster[r];
@@ -555,9 +570,14 @@ protected:
                               << ", Ry=" << cluster_total_scaled[y]
                               << ", Dxy-Rx-Ry=" << row_best_dist[r]
                               << "\n");
+                    #ifdef _MSC_VER
+                    #ifdef _OPENMP
+                    #pragma omp critical
+                    #endif
+                    #endif              
                     if (row_best_dist[r]<global_best_dist) {
                         global_best_dist = row_best_dist[r];
-                    }
+                    }                    
                     break;
                 } else {
                     FNJ_TRACE("For y=" << y << ", cluster x=" 
@@ -780,12 +800,15 @@ protected:
         //It's better to read from cluster_unsorted_start, 
         //since reading (and, more to the point, writing) 
         //in cluster number order is cache-friendlier.
-        auto start = cluster_unsorted_start[c];
-        auto stop  = cluster_unsorted_stop[c];
+        MatrixEntry* start       = cluster_unsorted_start[c];
+        MatrixEntry* stop        = cluster_unsorted_stop[c];
+        intptr_t     entry_count = stop - start;
+
         #ifdef _OPENMP
         #pragma omp parallel for if(1<threadCount)
         #endif
-        for (auto scan = start; scan<stop; ++scan) {
+        for (intptr_t i = 0; i<entry_count; ++i) {
+            MatrixEntry* scan = start + i;
             int       p  = scan->cluster_num;
             distances[p] = (0<cluster_in_play[p]) 
                          ? scan->distance : distances[p];
@@ -976,7 +999,9 @@ public:
 
         V    best_hc_vector = best_hc_dist;
         V    best_ix_vector = (T)best_x;
-
+        V    raw(0);
+        V    tot(0);
+        V    ix(0);
         for (auto scan=dataStart; scan<blockStop; scan+=block_size) {
             for (int i=0; i<block_size; ++i) {
                 blockRawDist[i] = scan[i].distance;
@@ -984,10 +1009,10 @@ public:
                 blockIndex[i]   = scan[i].cluster_num;
             }
 
-            V  raw;  raw.load(blockRawDist);
-            V  tot;  tot.load(blockCluster);
-            V  ix;   ix.load(blockIndex);
-            V  hc   = raw - tot; //subtract cluster totals to get half-cooked distances?
+            raw.load(blockRawDist);
+            tot.load(blockCluster);
+            ix.load(blockIndex);
+            V  hc(raw - tot); //subtract cluster totals to get half-cooked distances?
             VB less = hc < best_hc_vector; //which are improvements?
             best_hc_vector = select(less, hc, best_hc_vector);
             best_ix_vector = select(less, ix, best_ix_vector);
