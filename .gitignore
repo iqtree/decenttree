@@ -2,6 +2,10 @@
 .cproject
 .settings
 .project
+.vs
+Debug
+x64
+decentTree.vcxproj.user
 build/
 james_notes.txt
 pydecenttree/dist
