@@ -4,7 +4,6 @@
 #########################################################################
 
 cmake_minimum_required(VERSION 3.18.0 FATAL_ERROR)
-project(decenttree)
 
 # Windows example usages:
 #------------------------
@@ -83,8 +82,6 @@ if (CMAKE_GENERATOR MATCHES "Xcode")
     set(CMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT "dwarf-with-dsym")
 endif()
 
-include_directories("${PROJECT_SOURCE_DIR}")
-
 ##################################################################
 # Detect target platforms
 ##################################################################
@@ -132,15 +129,23 @@ set(CLANG_UNDER_VS "FALSE") #Clang compiler, used from inside Visual Studio
 if (CMAKE_CXX_COMPILER MATCHES "VISUAL STUDIO")
     set(CLANG_UNDER_VS "TRUE")
     #it won't recognize the -std=c++11 parameter.
-    #Todo: don't hard-code this; figure out some way it can be passed in (though ideally, not the whole shebang).
-    
+    #Todo: don't hard-code this; figure out some way it can be passed in (though ideally, not the whole shebang).    
     include_directories("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\Llvm\\lib\\clang\\10.0.0\\include")
     message("Using CLANG header files")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     #Don't want the clang includes for a native compile!
     message("Not using CLANG header files")
+elseif (CMAKE_CXX_COMPILER MATCHES "g\\+\\+")
+    set (CMAKE_COMPILER_IS_GNUCXX "TRUE")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+    #These tricks seem to be necessary with GCC
+    set (CMAKE_C_COMPILER_WORKS 1)
+    set (CMAKE_CXX_COMPILER_WORKS 1)
+    set (CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")    
 else()
-    message("Not using CLANG")
+    message("Not using CLANG.")
+    message("CMAKE_CXX_COMPILER_ID was ${CMAKE_CXX_COMPILER_ID}")
+    message("CMAKE_CXX_COMPILER was ${CMAKE_CXX_COMPILER}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
@@ -156,13 +161,20 @@ if (CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
     endif()
     # require at least gcc ${GCC_MIN_VERSION}
-    if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS GCC_MIN_VERSION)
-        message(FATAL_ERROR "GCC version must be at least ${GCC_MIN_VERSION}!")
+    
+    if (NOT "${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "")
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS GCC_MIN_VERSION)
+            message(FATAL_ERROR "GCC version (${CMAKE_CXX_COMPILER_VERSION}) must be at least ${GCC_MIN_VERSION}!")
+        endif()
     endif()
     if (WIN32)
-        # disable AVX on Windows due to memory alignment
+        # disable AVX on 32-bitWindows due to memory alignment
         set(DECENTTREE_FLAGS "${DECENTTREE_FLAGS} novx")
         message("WARNING: AVX is disabled on Windows as GCC does not properly suport memory alignment")
+        #Todo: Determine if this is still true!  It might not be.
+        #Todo: Determine if it is an issue for 64-bit!  It might not be.
+        #Todo: If it is still true, say when, and a bit more about the GCC 
+        #      compiler versions 
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     message("Compiler      : Clang")
@@ -188,7 +200,7 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(VCC "TRUE")
-    message("Compiler      : MS Visual C++ Compiler")
+    message("Compiler      : MS Visual C++ Compiler: ${CMAKE_CXX_COMPILER_ID}")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
     message("Compiler      : Intel C++ Compiler (icc)")
     set(ICC "TRUE")
@@ -198,7 +210,11 @@ else()
 endif()
 message("Compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 
+project(decenttree)
+include_directories("${PROJECT_SOURCE_DIR}")
+
 set(EXE_SUFFIX "")
+
 
 if (MSVC)
     # MS Visual Studio environment
@@ -271,12 +287,13 @@ endif()
 ##################################################################
 
 find_package(OpenMP)
-if (OPENMP_FOUND)
+if (OpenMP_FOUND)
     set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
-    message("OpenMP           : Yes")
-    message("OpenMP Flags     : ${OpenMP_C_Flags}")
-    message("OpenMP C++ Flags : ${OpenMP_CXX_Flags}")
+    message("OpenMP              : Yes")
+    message("OpenMP Flags        : ${OpenMP_C_FLAGS}")
+    message("OpenMP C++ Flags    : ${OpenMP_CXX_FLAGS}")
+    message("OpenMP Linker Flags : ${OpenMP_LINKER_FLAGS}")
 else()
     message("OpenMP package not found")
 endif()
@@ -316,8 +333,23 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp")
         endif()
     elseif (GCC)
-        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
+        if(OPENMP_FOUND)
+            set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+            set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+            set (GCC_DIR "$ENV{GCC_DIR}")
+            if ("${GCC_DIR}" STREQUAL "")
+                set (GCC_DIR "C:\\msys64\\mingw64")
+            endif()
+            if ("${OpenMP_LINKER_FLAGS}" STREQUAL "")
+                set (OpenMP_LINKER_FLAGS " -L${GCC_DIR}\\lib -lgomp")
+            endif()
+            set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_LINKER_FLAGS}")
+            message("XX ${CMAKE_EXE_LINKER_FLAGS}")
+        else(OPENMP_FOUND)
+            set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
+            message("Y")
+        endif()
     elseif (CLANG)
         if (CLANG_UNDER_VS)
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /openmp /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS /DCLANG_UNDER_VS=1")
@@ -607,13 +639,6 @@ endif()
 target_link_libraries(decenttree vectorclass
     ${PLATFORM_LIB} ${STD_LIB})
 
-# MPI libraries
-if (DECENTTREE_FLAGS MATCHES "mpi")
-    if (NOT CMAKE_CXX_COMPILER MATCHES "mpi")
-        target_link_libraries(decenttree ${MPI_CXX_LIBRARIES})
-    endif()
-endif()
-
 # setup the executable name
 ##################################################################
 set_target_properties(decenttree PROPERTIES OUTPUT_NAME "decenttree${EXE_SUFFIX}")
@@ -651,6 +676,7 @@ install (TARGETS decenttree DESTINATION bin)
 
 if (WIN32 OR WIN64)
     install (FILES "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe" DESTINATION bin)
+
     if (NOT DECENTTREE_FLAGS MATCHES "single" AND MSVC)
         if (BINARY32)
             install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)
