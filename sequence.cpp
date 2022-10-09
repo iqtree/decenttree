@@ -402,7 +402,7 @@ bool Sequences::loadAlignment(const std::string& fastaFilePath,
     }
     std::vector<size_t> sequence_odd_site_count;
     {
-        size_t seqLen   = front().sequenceLength();
+        intptr_t seqLen   = front().sequenceLength();
         std::vector<SiteInfo> sites;
         sites.resize(seqLen);
         SiteInfo* siteData = sites.data();
@@ -410,7 +410,7 @@ bool Sequences::loadAlignment(const std::string& fastaFilePath,
         size_t seqCount = size();
         for (size_t s=0; s<seqCount; ++s) {
             const char* sequence = at(s).data();
-            for (size_t i=0; i<seqLen; ++i) {
+            for (intptr_t i=0; i<seqLen; ++i) {
                 siteData[i].handle(unknown_char, s, sequence[i]);
             }
         }
@@ -420,7 +420,7 @@ bool Sequences::loadAlignment(const std::string& fastaFilePath,
         #ifdef _OPENMP
         #pragma omp parallel for
         #endif
-        for (int i=0; i<seqLen; ++i) {
+        for (intptr_t i=0; i<seqLen; ++i) {
             SiteInfo* info = siteData + i;
             if (info->unknownCount==seqCount) {
                 continue;
@@ -470,7 +470,7 @@ void SequenceLoader::setUpSerializedData() {
         const char* read_site = sequence_data[row];
         uint64_t*   write_unk = unknown_data[row];
         uint64_t          unk = 0;
-        for (int col=0; col<seqLen; ++col) {
+        for (intptr_t col=0; col<seqLen; ++col) {
             unk <<= 1;
             if (read_site[col] == unknown_char ) {
                 ++unk;

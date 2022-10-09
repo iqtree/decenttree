@@ -1456,11 +1456,7 @@ long ZEXPORT inflateMark(z_streamp strm)
     struct inflate_state FAR *state;
 
     if (strm == Z_NULL || strm->state == Z_NULL) {
-#ifdef CLANG_UNDER_VS
-        return 0xFFFFFF00; //was: -1L << 16;
-#else
-        return -1L << 16;
-#endif
+        return -65536; //was: -1L << 16;
     }
     state = (struct inflate_state FAR *)strm->state;
     return ((long)(state->back) << 16) +

@@ -36,7 +36,7 @@
 #include <utils/gzstream.h>
 #endif
 
-#define PROBLEM(x) if (1) problems << x << ".\n"; else 0
+#define PROBLEM(x) { problems << x << ".\n"; }
 
 namespace {
 

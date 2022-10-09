@@ -69,13 +69,13 @@ template <class L, class F> inline size_t sumForUnknownCharacters
 #if (HAMMING_VECTOR)
 inline double hammingDistance
 ( char unknown, const char* sequenceA, const char* sequenceB
- , size_t seqLen, const int* frequencyVector
+ , intptr_t seqLen, const int* frequencyVector
  , double& frequencyOfUnknowns ) {
     size_t blockStop = 0;
     int    distance  = 0;
     int    freqUnknown = 0;
     Vec32c blockA;
-    size_t blockSize = blockA.size(); //but see scratch. Needs to match
+    intptr_t blockSize = blockA.size(); //but see scratch. Needs to match
     if (blockSize < seqLen) {
         blockStop = seqLen - (seqLen & (blockSize-1));
         auto aStop = sequenceA + blockStop;
@@ -90,7 +90,7 @@ inline double hammingDistance
             Vec32cb known32   = (blockA != unknown) & (blockB != unknown);
             Vec32cb unknown32 = ~known32;
             diff32 &= known32;
-            int i = horizontal_find_first(diff32);
+            intptr_t i = horizontal_find_first(diff32);
             if (0<=i) {
                 char scratchDiff[32];
                 diff32.store(scratchDiff);
@@ -115,7 +115,7 @@ inline double hammingDistance
             b += blockSize;
         }
     }
-    for (size_t pos=blockStop; pos < seqLen; ++pos ) {
+    for (intptr_t pos=blockStop; pos < seqLen; ++pos ) {
         if (sequenceA[pos]==unknown || sequenceB[pos]==unknown) {
             freqUnknown += frequencyVector[pos];
         }
@@ -254,7 +254,7 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
 template <class V, int W>
 //W is the number of uint64_t's in a V.
 uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
-                                    size_t count /*in uint64_t*/) {
+                                      intptr_t count /* in instances of uint64_t */) {
     //Assumes: W divides count
     V count_vector  = 0;
     V aData = 0;
@@ -262,7 +262,7 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
     ALIGN_32(uint64_t vec[W]);
     ALIGN_32(uint64_t res[W]);
     V dData = 0;
-    for (int i=0; i<count; i+=W) {
+    for (intptr_t i=0; i<count; i+=W) {
         aData.load(a+i);
         bData.load(b+i);
         (aData | bData).store(&vec[0]);

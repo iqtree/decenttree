@@ -62,7 +62,7 @@
 #include "hashrow.h"                  //for HashRow
 #include "utils/parallel_mergesort.h" //for MergeSorter
 
-#define  FNJ_TRACE(x) (0)
+#define  FNJ_TRACE(x) {}
 
 namespace StartTree {
 template <class T=NJFloat> class FancyNJMatrix {
@@ -635,7 +635,7 @@ protected:
         std::sort(rows_by_dist.begin(), rows_by_dist.end());
     }
 
-    virtual void findPartnerForOneCluster(int r /*row*/, int y /*cluster*/) {
+    virtual bool findPartnerForOneCluster(int r /*row*/, int y /*cluster*/) {
         int best_x         = row_choice[r];    //other cluster
         T   best_hc_dist   = row_best_dist[r]  + cluster_total_scaled[y];
         T   cutoff         = best_hc_dist      + cluster_cutoff[y];
@@ -656,6 +656,7 @@ protected:
         //previewRows().
         auto dataStart = cluster_sorted_start[y] + 1; 
         auto dataStop  = cluster_sorted_stop[y];
+        bool found     = false;
 
         dataStop = findFirstGreaterDistance
                     (dataStart, dataStop, cutoff);
@@ -666,11 +667,13 @@ protected:
             if (best_hc_dist<=dist_half_cooked) {
                 continue;
             }
+            found         = true;
             best_hc_dist  = dist_half_cooked;
             best_x        = x; //best cluster found
         }
         row_best_dist[r] = best_hc_dist - cluster_total_scaled[y];
         row_choice[r]    = best_x;
+        return found;
     }
 
     MatrixEntry* findFirstGreaterDistance(MatrixEntry* start, 
@@ -965,7 +968,7 @@ public:
         }
     }
 
-    virtual void findPartnerForOneCluster(int r /*row*/, int y /*cluster*/) override {
+    virtual bool findPartnerForOneCluster(int r /*row*/, int y /*cluster*/) override {
         auto thread_num     = getThreadNumber();
         int  best_x         = row_choice[r];    //other cluster
         T    best_hc_dist   = row_best_dist[r]  + cluster_total_scaled[y];
@@ -1002,6 +1005,7 @@ public:
         V    raw(0);
         V    tot(0);
         V    ix(0);
+        bool found = false;
         for (auto scan=dataStart; scan<blockStop; scan+=block_size) {
             for (int i=0; i<block_size; ++i) {
                 blockRawDist[i] = scan[i].distance;
@@ -1021,7 +1025,6 @@ public:
         if (dataStart<blockStop) {
             best_hc_vector.store(blockHCDist);
             best_ix_vector.store(blockIndex);
-            bool found = false;
             for (int i=0; i<block_size; ++i) {
                 if (blockHCDist[i] < best_hc_dist ) {
                     best_hc_dist = blockHCDist[i];
@@ -1036,15 +1039,17 @@ public:
             T   dist_raw         = scan->distance;
             T   dist_half_cooked = dist_raw 
                                  - cluster_total_scaled[x];
-            if (best_hc_dist<=dist_half_cooked) {
+            if (best_hc_dist<=dist_half_cooked) {                
                 continue;
             }
+            found         = true;
             best_hc_dist  = dist_half_cooked;
             best_x        = x; //best cluster found
         }
 
         row_best_dist[r] = best_hc_dist - cluster_total_scaled[y];
         row_choice[r]    = best_x;
+        return found;
     } //findPartnerForOneCluster
 }; //VectorizedFancyNJMatrix
 #endif //USE_VECTORCLASS_LIBRARY
