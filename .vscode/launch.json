@@ -14,9 +14,17 @@
                       "-t", "NJ", "-nt", "16", 
                       "-no-banner"],
             "cwd": "${workspaceRoot}/build",
-            "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+
+            //Windows and GNU
+            //"MIMode": "gdb",
+            //"miDebuggerPath": "C:\\msys64\\mingw64\\bin\\gdb.exe"
+
+            //MacOS and Clang
+            //"MIMode": "lldb",
+            //"miDebuggerPath": "D:\\VisualStudioCode\\mingw\bin\\gdb.exe"
+
+            "environment": []
         },
         {
             "name": "dmatrix",
@@ -29,9 +37,13 @@
                       "-out-format", "lower",
                       "-no-banner", "-no-out", "-t", "NONE"],
             "cwd": "${workspaceRoot}/build",
-            "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+            //"MIMode": "gdb",
+            //"miDebuggerPath": "C:\\msys64\\mingw64\\bin\\gdb.exe"
+
+            //MacOS: 
+            //"MIMode": "lldb"
+            "environment": []
         },
 
         {
@@ -42,9 +54,11 @@
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}/build/example",
-            "environment": [],
             "externalConsole": false,
-            "MIMode": "lldb"
+            //MacOS: 
+            //"MIMode": "lldb"
+            "environment": []
+            
         }
     ]
 }
