@@ -217,7 +217,16 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
             CV(diff32).store( reinterpret_cast<char*>(&vec[0]));
             for (int j=0; j<W/8; ++j) {
                 #if (defined (__GNUC__) || defined(__clang__)) && !defined(CLANG_UNDER_VS)
-                    __asm("popcntq %1, %0" : "=r"(res[j]) : "r"(vec[j]) : );
+                    #ifndef WIN32
+                        __asm("popcntq %1, %0" : "=r"(res[j]) : "r"(vec[j]) : );
+                    #else
+                        uint32_t* vec32 = reinterpret_cast<uint32_t*>(&vec[j]);
+                        uint32_t  first_half;
+                        uint32_t  second_half;                
+                        __asm("popcnt %1, %0" : "=r"(first_half) : "r"(vec32[0]) : );
+                        __asm("popcnt %1, %0" : "=r"(second_half) : "r"(vec32[1]) : );
+                        res[j] = first_half + second_half;                    
+                        #endif
                 #else
                     res[j] = _mm_popcnt_u64(vec[j]);
                 #endif
@@ -259,7 +268,16 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
         (aData | bData).store(&vec[0]);
         for (int j=0; j<W; ++j) {
             #if (defined (__GNUC__) || defined(__clang__)) && !defined(CLANG_UNDER_VS)
-                __asm("popcntq %1, %0" : "=r"(res[j]) : "r"(vec[j]) : );
+                #ifndef WIN32
+                    __asm("popcntq %1, %0" : "=r"(res[j]) : "r"(vec[j]) : );
+                #else
+                    uint32_t* vec32 = reinterpret_cast<uint32_t*>(&vec[j]);
+                    uint32_t  first_half;
+                    uint32_t  second_half;                
+                    __asm("popcnt %1, %0" : "=r"(first_half) : "r"(vec32[0]) : );
+                    __asm("popcnt %1, %0" : "=r"(second_half) : "r"(vec32[1]) : );
+                    res[j] = first_half + second_half;                    
+                #endif
             #else
                 res[j] = _mm_popcnt_u64(vec[j]);
             #endif
