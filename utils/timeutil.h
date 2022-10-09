@@ -60,7 +60,7 @@
 
 #if (defined _WIN32 || defined __WIN32__ || defined WIN64) && ! defined __CYGWIN__
 	#include <windows.h>
-#elif (defined HAVE_GETRUSAGE && !defined _WIN64 && !defined _WIN32)
+#elif (defined HAVE_GETRUSAGE && !defined _WIN64 && !defined _WIN32 && !defined WIN32)
 	#include <sys/resource.h>
 #else
 	#include <sys/times.h>
@@ -237,7 +237,7 @@ inline uint64_t getTotalSystemMemory()
  */
 __inline uint64_t getMemorySize( )
 {
-#if defined(_WIN32) && (defined(__CYGWIN__) || defined(__CYGWIN32__) || !defined(_WIN64))
+#if (defined(_WIN32) && !defined(_WIN64) && (defined(__CYGWIN__) || defined(__CYGWIN32__)))
 	/* Cygwin under Windows. ------------------------------------ */
 	/* New 64-bit MEMORYSTATUSEX isn't available.  Use old 32.bit */
 #warning "getMemorySize() will be wrong if RAM is actually > 4GB"
