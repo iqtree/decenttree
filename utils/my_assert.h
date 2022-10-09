@@ -14,6 +14,7 @@
 
 #include <stdlib.h>
 #include <iostream>
+#include <string.h> //for strrchr (needed for GCC 9.2 builds)
 
 // for MSVC
 #ifndef __func__
