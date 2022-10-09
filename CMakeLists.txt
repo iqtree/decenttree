@@ -4,6 +4,16 @@
 #########################################################################
 
 cmake_minimum_required(VERSION 3.18.0 FATAL_ERROR)
+#These tricks seem to be necessary to get GCC builds to work on Windows. 
+#Which is ludicrous.  Out of the box the GCC compiler can't build even
+#a trivial executable, unless you tell it want to link.  And CMake, when
+#it is using the compiler, to see if it works, doesn't pass it the parameters
+#that are needed, if the linker is to link.
+set (CMAKE_C_COMPILER_WORKS 1)
+set (CMAKE_CXX_COMPILER_WORKS 1)
+set (CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")
+
+project(decenttree)
 
 # Windows example usages:
 #------------------------
@@ -50,8 +60,29 @@ cmake_minimum_required(VERSION 3.18.0 FATAL_ERROR)
 # Compile static version: cmake -DDECENTTREE_FLAGS=static ....
 # Compile static OpenMP version: cmake -DDECENTTREE_FLAGS="static" ....
 #
-
-#NOTE: Static linking with clang windows: make a symlink libgcc_eh.a to libgcc.a (administrator required)
+# Notes
+# Environment IDE       Compiler    Comments
+# Windows     VS Code   GCC         Seems to need Ninja (can't see why). Might be necessary to download a version of
+#                                   Ninja from the official website, and put that somewhere in your path.
+# Windows     VS Code   GCC 9.2     The compiler mightn't have libgomp.a, libgomp.dll.a, libgomp.spec files in
+#                                   its lib directory.  I found I could copy them across from the 12.2 compiler's
+#`                                  lib directory, to get a GCC 9.2 build to at least... link.
+# Windows     VS COde   GCC 12.2    CMake isn't recognizing the compiler.  Tried installing a slightly later 
+#                                   CMake (3.24 rather than 3.23) but that didn't help.
+#                                   Building fails due to an error message which CMake/VS Code won't display.
+#                                   "The code execution cannot proceeed because libisl-23.dll was not found.
+#                                    Reinstalling the program may fix this problem."
+#                                   (I only found this by running build steps from the command-line).
+#                                   It isn't that MSys2 doesn't install GCC 12.2 correclty.  
+#                                   It's that pacman installs the latest version of every package.
+#                                   (And at the time of writing libisl's version is 0.25 )
+#                                   I tried  
+#                                   > pacman -S mingw-w64-i686-isl
+#                                   in the hopes of getting the 0.25-2 version 
+#                                   (so I could copy libisl-25.dll to libisl-23.dll).
+# Mac OS                Clang 13    Seems to be compiling with -std=c99 (or similar).
+#
+#NOTE: Static linking with clang windows: make a symlink libgcc_eh.a to libgcc.a (administrator required
 # C:\TDM-GCC-64\lib\gcc\x86_64-w64-mingw32\5.1.0>mklink libgcc_eh.a libgcc.a
 #
 #
@@ -68,14 +99,17 @@ if (CMAKE_C_COMPILER MATCHES "mpic")
     set(DECENTTREE_FLAGS "${DECENTTREE_FLAGS} mpi")
 endif()
 
-message("DECENTTREE_FLAGS : ${DECENTTREE_FLAGS}")
+message("CMAKE_VERSION       : ${CMAKE_VERSION}")
+message("DECENTTREE_FLAGS    : ${DECENTTREE_FLAGS}")
 
 if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    message("Build mode   : Release")
+    message("Build mode          : Release")
+else()
+    message("Build mode          : Debug")
 endif()
 
 if (CMAKE_GENERATOR MATCHES "Xcode")
@@ -86,14 +120,14 @@ endif()
 # Detect target platforms
 ##################################################################
 if (WIN32)
-    message("Target OS     : Windows")
+    message("Target OS           : Windows")
     # build as static binary to run on most machines
     if (DECENTTREE_FLAGS MATCHES "static")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static")
     endif()
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 elseif (APPLE)
-    message("Target OS     : Mac OS X")
+    message("Target OS           : Mac OS X")
     # to be compatible back to Mac OS X 10.7
     if (DECENTTREE_FLAGS MATCHES "oldmac")
         add_definitions("-mmacosx-version-min=10.5")
@@ -104,7 +138,7 @@ elseif (APPLE)
     endif()
     SET(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 elseif (UNIX)
-    message("Target OS     : Unix")
+    message("Target OS           : Unix")
     # build as static binary to run on most machines
     if (NOT DECENTTREE_FLAGS MATCHES "static")
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
@@ -113,71 +147,84 @@ elseif (UNIX)
     endif()
 else()
     # Note that IQ-TREE has NOT been tested on other platforms
-    message("Target OS     : Unknown and untested yet")
+    message("Target OS          : Unknown and untested yet")
 endif()
 
 ##################################################################
 # Setup compiler, currently supported GCC, CLANG, MSVC, and ICC
 ##################################################################
 
-set(GCC "FALSE")   #  GNU compiler
-set(CLANG "FALSE") # Clang compiler
-set(ICC "FALSE")   # Intel compiler
-set(VCC "FALSE")   # MS Visual C Compiler, note that it is different from MSVC variable
-set(CLANG_UNDER_VS "FALSE") #Clang compiler, used from inside Visual Studio
+set(GCC "FALSE")            #  GNU compiler
+set(CLANG "FALSE")          # Clang compiler
+set(ICC "FALSE")            # Intel compiler
+set(VCC "FALSE")            # MS Visual C Compiler, note that it is different from MSVC variable
+set(CLANG_UNDER_VS "FALSE") # Clang compiler, used from inside Visual Studio
 # using C++11 standard
 if (CMAKE_CXX_COMPILER MATCHES "VISUAL STUDIO")
     set(CLANG_UNDER_VS "TRUE")
     #it won't recognize the -std=c++11 parameter.
-    #Todo: don't hard-code this; figure out some way it can be passed in (though ideally, not the whole shebang).    
+    #Todo: don't hard-code this; figure out some way it can be
+    #passed in (though ideally, not the whole shebang).    
     include_directories("C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\Llvm\\lib\\clang\\10.0.0\\include")
-    message("Using CLANG header files")
+    message("Compiler identified as CLANG under Visual Studio: Using CLANG header files")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     #Don't want the clang includes for a native compile!
-    message("Not using CLANG header files")
+    #message("Not using CLANG header files")
+    set(VCC "TRUE")
+    message("Compiler identified as Visual Studio")
 elseif (CMAKE_CXX_COMPILER MATCHES "g\\+\\+")
     set (CMAKE_COMPILER_IS_GNUCXX "TRUE")
-    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    #These tricks seem to be necessary with GCC
-    set (CMAKE_C_COMPILER_WORKS 1)
-    set (CMAKE_CXX_COMPILER_WORKS 1)
-    set (CMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY")    
+    #-std=c++11 is broken in GCC 9.2 (possibly in other version too). 
+    #Neither _fileno nor fileno will be defined when you include <stdio.h>
+    #which causes a compilation error in operatingsystem.cpp's isStandardOutputATerminal() function.
+    #workaround: use -std=gnu+11 instead.
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=gnu++11")
+    #set (CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -std=gnu99")
+    message("Compiler identified as g++/gcc")
 else()
-    message("Not using CLANG.")
+    message("Using C++11")
     message("CMAKE_CXX_COMPILER_ID was ${CMAKE_CXX_COMPILER_ID}")
     message("CMAKE_CXX_COMPILER was ${CMAKE_CXX_COMPILER}")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 endif()
 
 if (CMAKE_COMPILER_IS_GNUCXX)
-    message("Compiler      : GNU Compiler (gcc)")
+    message("Compiler            : GNU Compiler (gcc)")
     set(GCC "TRUE")
-#    set(COMBINED_FLAGS "-Wall -Wno-unused-function -Wno-sign-compare -pedantic -D_GNU_SOURCE -fms-extensions -Wno-deprecated")
-    set(CMAKE_CXX_FLAGS_RELEASE "-O2 -g -ffunction-sections -fdata-sections")
-    set(CMAKE_C_FLAGS_RELEASE "-O2 -g -ffunction-sections -fdata-sections")
+    #set(COMBINED_FLAGS "-Wall -Wno-unused-function -Wno-sign-compare -pedantic -D_GNU_SOURCE -fms-extensions -Wno-deprecated")
+        
+    set(CMAKE_C_FLAGS_RELEASE   "${CMAKE_C_FLAGS_RELEASE} -O2 -g -ffunction-sections -fdata-sections")
+    set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2 -g -ffunction-sections -fdata-sections")    
     if (APPLE)
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,-dead_strip")
     else()
-        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections")
+        set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections,--no-whole-archive")
+        if (WIN32)
+            set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -lmingw32")
+            message("Explicitly linking libmingw32")
+        #elseif (WIN64)
+        #    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -lmingw32")
+        endif()
     endif()
-    # require at least gcc ${GCC_MIN_VERSION}
     
     if (NOT "${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "")
         if (CMAKE_CXX_COMPILER_VERSION VERSION_LESS GCC_MIN_VERSION)
             message(FATAL_ERROR "GCC version (${CMAKE_CXX_COMPILER_VERSION}) must be at least ${GCC_MIN_VERSION}!")
         endif()
     endif()
+
     if (WIN32)
         # disable AVX on 32-bitWindows due to memory alignment
-        set(DECENTTREE_FLAGS "${DECENTTREE_FLAGS} novx")
+        set(DECENTTREE_FLAGS "${DECENTTREE_FLAGS} noavx")
         message("WARNING: AVX is disabled on Windows as GCC does not properly suport memory alignment")
         #Todo: Determine if this is still true!  It might not be.
         #Todo: Determine if it is an issue for 64-bit!  It might not be.
         #Todo: If it is still true, say when, and a bit more about the GCC 
-        #      compiler versions 
+        #      compiler versions.
     endif()
+
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    message("Compiler      : Clang")
+    message("Compiler            : Clang")
     set(CLANG "TRUE")
 #    set(COMBINED_FLAGS "-Wall -Wno-unused-function -Wno-sign-compare -pedantic -D_GNU_SOURCE -Wno-nested-anon-types")
     set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffunction-sections -fdata-sections")
@@ -200,21 +247,20 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     set(VCC "TRUE")
-    message("Compiler      : MS Visual C++ Compiler: ${CMAKE_CXX_COMPILER_ID}")
+    message("Compiler            : MS Visual C++ Compiler: ${CMAKE_CXX_COMPILER_ID}")
 elseif (CMAKE_CXX_COMPILER_ID MATCHES "Intel")
-    message("Compiler      : Intel C++ Compiler (icc)")
+    message("Compiler            : Intel C++ Compiler (icc)")
     set(ICC "TRUE")
     #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Qstd=c99")
 else()
-    message("Compiler      : Unknown and untested yet")
+    message("Compiler            : Unknown and untested yet")
 endif()
-message("Compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
+message("Compiler path       : ${CMAKE_CXX_COMPILER}")
+message("Compiler version    : ${CMAKE_CXX_COMPILER_VERSION}")
 
-project(decenttree)
 include_directories("${PROJECT_SOURCE_DIR}")
 
 set(EXE_SUFFIX "")
-
 
 if (MSVC)
     # MS Visual Studio environment
@@ -223,17 +269,18 @@ if (MSVC)
         #see https://clang.llvm.org/docs/UsersManual.html#clang-cl
         #note /GX is how you say -fexceptions
         add_definitions(/D_UWIN)
-        set(CMAKE_C_FLAGS_RELEASE "/O2")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /GX")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /I${EIGEN3_INCLUDE_DIR} /GX")
     else()
-        #Used to: add_definitions(/MP) # enable multi-processor compilation
-        #But zlib won't compile with it.
+        #enable multi-processor compilation
+        add_definitions("/MP")
+        #Though zlib mightn't compile with it set, with Visual Studio 2019.
+        #It didn't for me.  But it compiled with it with Visual Studio 2022.
     endif()
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
         add_definitions(/Ot /Oi)
         if (VCC)
-            add_definitions(/O2)
+            #add_definitions(/O2) - not compatible with /RTC1
         elseif (ICC)
             add_definitions(/O3)
         endif()
@@ -255,7 +302,7 @@ endif()
 set (BINARY32 "FALSE")
 if(CMAKE_SIZEOF_VOID_P EQUAL 4 OR DECENTTREE_FLAGS MATCHES "m32")
     set(BINARY32 "TRUE")
-    message("Target binary : 32-bit")
+    message("Target binary       : 32-bit")
     if (CMAKE_GENERATOR MATCHES "Win64")
         error("Both 32-bit and 64-bit mode cannot be specified")
     endif()
@@ -267,7 +314,7 @@ if(CMAKE_SIZEOF_VOID_P EQUAL 4 OR DECENTTREE_FLAGS MATCHES "m32")
         add_definitions(-DWIN32)
     endif()
 else()
-    message("Target binary : 64-bit")
+    message("Target binary       : 64-bit")
     if (CLANG_UNDER_VS)
         set(COMBINED_FLAGS "${COMBINED_FLAGS} -m64")
     endif()
@@ -344,11 +391,9 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
                 set (OpenMP_LINKER_FLAGS " -L${GCC_DIR}\\lib -lgomp")
             endif()
             set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_LINKER_FLAGS}")
-            message("XX ${CMAKE_EXE_LINKER_FLAGS}")
         else(OPENMP_FOUND)
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
             set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
-            message("Y")
         endif()
     elseif (CLANG)
         if (CLANG_UNDER_VS)
@@ -374,7 +419,7 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
         endif()
     endif()
 else()
-    message("OpenMP        : NONE")
+    message("OpenMP              : NONE")
 endif()
 
 ##################################################################
@@ -549,25 +594,25 @@ add_compile_definitions(USE_VECTORCLASS_LIBRARY=1)
 add_compile_definitions(USE_GZSTREAM=1)
 add_compile_definitions(DECENT_TREE=1)
 
-message("CMake build type: ${CMAKE_BUILD_TYPE}")
-message("CMake source dir: ${CMAKE_SOURCE_DIR}")
+message("CMake build type    : ${CMAKE_BUILD_TYPE}")
+message("CMake source dir    : ${CMAKE_SOURCE_DIR}")
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+    message("C flags             : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+    message("CXX flags           : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
 elseif (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
+    message("C flags             : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_DEBUG}")
+    message("CXX flags           : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_DEBUG}")
 elseif (CMAKE_BUILD_TYPE STREQUAL "Profile")
-    message("C flags         : ${CMAKE_C_FLAGS_PROFILE} ")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS_PROFILE} ")
+    message("C flags             : ${CMAKE_C_FLAGS_PROFILE} ")
+    message("CXX flags           : ${CMAKE_CXX_FLAGS_PROFILE} ")
 else()
-    message("C flags         : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
-    message("CXX flags       : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
+    message("C flags             : ${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_RELEASE}")
+    message("CXX flags           : ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_RELEASE}")
 endif()
-message("LINKER flags    : ${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
+message("LINKER flags        : ${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_EXE_LINKER_FLAGS_RELEASE}")
 get_directory_property( COMPILER_DEFINITIONS DIRECTORY ${CMAKE_SOURCE_DIR} COMPILE_DEFINITIONS )
-message("Compiler defns  : ${COMPILER_DEFINITIONS}")
-message("Binary directory: ${PROJECT_BINARY_DIR}")
+message("Compiler defns      : ${COMPILER_DEFINITIONS}")
+message("Binary directory    : ${PROJECT_BINARY_DIR}")
 
 ##################################################################
 # the main executable
@@ -659,7 +704,9 @@ else()
 endif()
 
 if (WIN32)
-    if (MSVC)
+    if(GCC)
+        #Don't need a post-build target
+    elseif(MSVC)
         #ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "${BINARY_DIR}/decenttree${EXE_SUFFIX}.exe" "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe")
     else()
         ADD_CUSTOM_COMMAND(TARGET decenttree POST_BUILD COMMAND copy "decenttree${EXE_SUFFIX}.exe" "decenttree${EXE_SUFFIX}-click.exe")
@@ -675,19 +722,19 @@ add_subdirectory(pydecenttree)
 install (TARGETS decenttree DESTINATION bin)
 
 if (WIN32 OR WIN64)
-    install (FILES "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe" DESTINATION bin)
+    if (MSVC)
+        install (FILES "${BINARY_DIR}/decenttree${EXE_SUFFIX}-click.exe" DESTINATION bin)
 
-    if (NOT DECENTTREE_FLAGS MATCHES "single" AND MSVC)
-        if (BINARY32)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
-        else()
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadVC2.dll" DESTINATION bin)
-            install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
+        if (NOT DECENTTREE_FLAGS MATCHES "single")
+            if (BINARY32)
+                install(FILES  "${PROJECT_SOURCE_DIR}/lib32/pthreadVC2.dll" DESTINATION bin)
+                install(FILES  "${PROJECT_SOURCE_DIR}/lib32/libiomp5md.dll" DESTINATION bin)
+            else()
+                install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadVC2.dll" DESTINATION bin)
+                install(FILES  "${PROJECT_SOURCE_DIR}/lib/libiomp5md.dll" DESTINATION bin)
+            endif()
         endif()
-#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2.dll" DESTINATION bin)
-#       install(FILES  "${PROJECT_SOURCE_DIR}/lib/pthreadGC2_64.dll" DESTINATION bin)
-    endif()
+    endif(MSVC)
 
     if (NOT DECENTTREE_FLAGS MATCHES "single" AND CLANG)
         if (BINARY32)
