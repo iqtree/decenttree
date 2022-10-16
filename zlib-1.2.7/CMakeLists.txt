@@ -5,7 +5,7 @@ project(zlib C)
 
 if (APPLE)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "12")
+        if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER_EQUAL 13)
             set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-non-prototype")
         endif()
     endif()
