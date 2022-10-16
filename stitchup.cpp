@@ -551,9 +551,11 @@ public:
                 stitches.emplace_back(row, col, rowData[col]);
             }
         }
+        size_t heapSize = stitches.size();
         MinHeapOnArray< LengthSortedStitch<T> >
-            heap ( stitches.data(), stitches.size()
+            heap ( stitches.data(), heapSize
                  , silent ? "" : "Constructing min-heap of possible edges" );
+        
         size_t iterations = 0;
         #if USE_PROGRESS_DISPLAY
         double row_count_triangle = 0.5*(double)row_count*(double)(row_count+1);
@@ -571,7 +573,8 @@ public:
                 source   = shortest.source;
                 dest     = shortest.destination;
                 ++iterations;
-            } while ( graph.areLeavesInSameSet(source,dest) );
+            } while ( graph.areLeavesInSameSet(source,dest)
+                      && iterations<=heapSize && !heap.empty() );
             graph.staple(source, dest, shortest.length);
             progress += (join+1);
         }
@@ -647,7 +650,7 @@ public:
     void constructTreeFromEdgeHeap(MinHeapOnArray< TaxonEdge <T> > &heap,
                                    progress_display& progress) {
         intptr_t taxon_count = row_count;
-        size_t iterations = 0;
+        size_t   iterations  = 0;
 
         std::vector<size_t> taxonToRow;
         taxonToRow.resize(taxon_count);
@@ -660,12 +663,14 @@ public:
         }
 
         intptr_t degree_of_root = isRooted ? 2 : 3;
+        size_t   heap_size = heap.size();
         while (degree_of_root<row_count) {
             TaxonEdge<T> shortest;
             do {
                 shortest = heap.pop_min();
                 ++iterations;
-            } while ( tr[shortest.taxon1] == tr[shortest.taxon2] );
+            } while ( tr[shortest.taxon1] == tr[shortest.taxon2] 
+                    && iterations < heap_size);
             size_t rA = tr[shortest.taxon1];
             size_t rB = tr[shortest.taxon2];
             size_t r1 = (rA<rB) ? rA : rB;

@@ -151,6 +151,12 @@ public:
         extractTopFromMinHeap( data, 0, count );
         return data[count];
     }
+    bool empty() const {
+        return count==0;
+    }
+    size_t size() const {
+        return count;
+    }
 };
 
 template <class V, class S>
