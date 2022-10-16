@@ -408,8 +408,6 @@ template <class F=std::stringstream, class M>
 #if USE_PROGRESS_DISPLAY
     const char* taskDescription = reportProgress ? "Loading distance matrix" : "";
     progress_display progress(rank, taskDescription, "loaded", "row");
-#else
-    double progress = 0.0;
 #endif
     for (intptr_t r = 0; r < rank; ++r) {
         std::stringstream line;
@@ -448,13 +446,15 @@ template <class F=std::stringstream, class M>
                 }
                 matrix.cell(0, 0) = 0;
             }
-#if USE_PROGRESS_DISPLAY
             if (format_comment!=nullptr) {
+#if USE_PROGRESS_DISPLAY
                 progress.hide();
-                std::cout << format_comment << std::endl;
-                progress.show();
-            }
 #endif
+                std::cout << format_comment << std::endl;
+#if USE_PROGRESS_DISPLAY
+                progress.show();
+#endif
+            }
         }
         else if (line.tellg() != -1) {
             std::stringstream problem;
@@ -465,7 +465,9 @@ template <class F=std::stringstream, class M>
                 << " but there were more distances.";
             throw problem.str();
         }
-        ++progress;
+        #if USE_PROGRESS_DISPLAY
+            ++progress;
+        #endif
     }
     if (lower) {
         copyLowerTriangleOfMatrixToUpper(matrix);

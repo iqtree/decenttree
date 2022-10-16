@@ -202,8 +202,6 @@ public:
             const char* taskName = silent
                 ? "" :  "Setting up auxiliary I and S matrices";
             progress_display setupProgress(row_count, taskName, "sorting", "row");
-            #else
-            double setupProgress = 0.0;
             #endif
             //2. Set up the matrix with row sorted by distance
             //   And the matrix that tracks which distance is
@@ -218,10 +216,12 @@ public:
                 int threadNum = getThreadNumber();
                 for (intptr_t r=threadNum; r<row_count; r+=threadCount) {
                     sortRow(r,r,false,sorters[threadNum]);
-                    ++setupProgress;
                     //copies the "left of the diagonal" portion of
                     //row r from the D matrix and sorts it
                     //into ascending order.
+                    #if USE_PROGRESS_DISPLAY
+                        ++setupProgress;
+                    #endif
                 }
             }
         }
