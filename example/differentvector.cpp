@@ -28,4 +28,5 @@ int main(int argc, char* argv[]) {
 	int precision = 6;
 	std::string newickTreeFilePath = "STDOUT";
 	r.writeTreeFile(precision, newickTreeFilePath);
+	return 0;
 }
