@@ -66,7 +66,7 @@ project(decenttree)
 #                                   Ninja from the official website, and put that somewhere in your path.
 # Windows     VS Code   GCC 9.2     The compiler mightn't have libgomp.a, libgomp.dll.a, libgomp.spec files in
 #                                   its lib directory.  I found I could copy them across from the 12.2 compiler's
-#`                                  lib directory, to get a GCC 9.2 build to at least... link.
+#`                                  lib directory, to get a GCC 9.2 build to at least... link.  No idea if it runs!
 # Windows     VS COde   GCC 12.2    CMake isn't recognizing the compiler.  Tried installing a slightly later 
 #                                   CMake (3.24 rather than 3.23) but that didn't help.
 #                                   Building fails due to an error message which CMake/VS Code won't display.
@@ -496,21 +496,23 @@ elseif (ICC)
 endif()
 
 SET(AVX512_FLAGS "-D__SSE3 -D__AVX")
-if (VCC)
-    message("AVX512 not available in Visual C++")
-    #set(AVX512_FLAGS "${AVX512_FLAGS} /arch:AVX512")
-elseif (CLANG)
-    set(AVX512_FLAGS "${AVX512_FLAGS} -mavx512f -mfma")
-elseif (GCC)
-    set(AVX512_FLAGS "${AVX512_FLAGS} -mavx512f -mfma")
-elseif (ICC)
-    if (WIN32)
-         set(AVX512_FLAGS "${AVX512_FLAGS} /QxMIC-AVX512")
-    else()
-         set(AVX512_FLAGS "${AVX512_FLAGS} -xMIC-AVX512")
+if (DECENTTREE_FLAGS MATCHES "no512")
+else()
+    if (VCC)
+        #AVX512 available with Visual Studio 17 and up
+        set(AVX512_FLAGS "${AVX512_FLAGS} /arch:AVX512")
+    elseif (CLANG)
+        set(AVX512_FLAGS "${AVX512_FLAGS} -mavx512f -mfma")
+    elseif (GCC)
+        set(AVX512_FLAGS "${AVX512_FLAGS} -mavx512f -mfma")
+    elseif (ICC)
+        if (WIN32)
+            set(AVX512_FLAGS "${AVX512_FLAGS} /QxMIC-AVX512")
+        else()
+            set(AVX512_FLAGS "${AVX512_FLAGS} -xMIC-AVX512")
+        endif()
     endif()
 endif()
-
 # further flag to improve performance
 
 if (DECENTTREE_FLAGS MATCHES "fma") # AVX+FMA instruction set
