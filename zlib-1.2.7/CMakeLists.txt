@@ -3,6 +3,14 @@ set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS ON)
 
 project(zlib C)
 
+if (APPLE)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER "12")
+            set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-non-prototype")
+        endif()
+    endif()
+endif(APPLE)
+
 set(VERSION "1.2.7")
 
 set(INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin" CACHE PATH "Installation directory for executables")
