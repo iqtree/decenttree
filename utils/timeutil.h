@@ -76,9 +76,11 @@
         #include <sys/types.h>
         #include <winsock.h>
 
+		#ifdef _MSC_VER
         struct timezone {
             char dummy;
         };
+		#endif
 
         __inline int my_gettimeofday(struct timeval* t, void* timezone)
         {
