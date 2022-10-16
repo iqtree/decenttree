@@ -79,7 +79,15 @@ project(decenttree)
 #                                   I tried  
 #                                   > pacman -S mingw-w64-i686-isl
 #                                   in the hopes of getting the 0.25-2 version 
-#                                   (so I could copy libisl-25.dll to libisl-23.dll).
+#                                   (so I could copy libisl-25.dll to libisl-23.dll).  But -- no dice.
+#
+#                                   In the end I could only get the compiler to work at all with a copy & rename
+#                                   of that missing DLL.  And two others (!).
+#
+#                                   copy c:\msys64\usr\bin\msys-isl-23.dll     c:\msys64\mingw64\bin\libisl-23.dll
+#                                   copy c:\msys64\usr\bin\msys-gmp-10.dll c:\msys64\mingw64\bin
+#                                   copy c:\msys64\usr\bin\msys-2.0.dll    c:\msys64\mingw64\bin
+#
 # Mac OS                Clang 13    Seems to be compiling with -std=c99 (or similar).
 #
 #NOTE: Static linking with clang windows: make a symlink libgcc_eh.a to libgcc.a (administrator required
@@ -204,12 +212,12 @@ if (CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,-dead_strip")
     else()
         set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -Wl,--gc-sections,--no-whole-archive")
-        if (WIN32)
-            set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -lmingw32")
-            message("Explicitly linking libmingw32")
+        #if (WIN32)
+        #    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -lmingw32")
+        #    message("Explicitly linking libmingw32")
         #elseif (WIN64)
         #    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -lmingw32")
-        endif()
+        #endif()
     endif()
     
     if (NOT "${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "")
@@ -347,7 +355,7 @@ if (OpenMP_FOUND)
     message("OpenMP C++ Flags    : ${OpenMP_CXX_FLAGS}")
     message("OpenMP Linker Flags : ${OpenMP_LINKER_FLAGS}")
 else()
-    message("OpenMP package not found")
+    message("OpenMP package not found")    
 endif()
 
 if (NOT DECENTTREE_FLAGS MATCHES "single")
@@ -675,7 +683,9 @@ endif()
 
 # link special lib for WIN32
 if (WIN32)
-    set(PLATFORM_LIB "ws2_32")
+    if (MSVC)
+        set(PLATFORM_LIB "ws2_32")
+    endif()
 else()
     set(PLATFORM_LIB "m")
 endif()
