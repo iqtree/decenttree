@@ -394,6 +394,46 @@ template <class F=std::stringstream, class M> intptr_t loadPartialRowFromLine
     return c;
 }
 
+template <class M, class P> 
+void recognizeFormat(intptr_t r, intptr_t c, intptr_t cStop,
+                     bool& square, bool& lower, bool& upper, 
+                     M& matrix, P& progress) {
+    const char* format_comment = "";
+    if (square && r == 0 && c == 0) {
+        //Implied lower-triangle format
+        square         = false;
+        lower          = true;
+        format_comment = "Input appears to be in lower-triangle format" ;
+    }
+    else if (square && r == 0 && c + 1 == cStop) {
+        //Implied upper-triangle format
+        square         = false;
+        upper          = true;
+        format_comment = "Input appears to be in upper-triangle format" ;
+        for (size_t shift = cStop - 1; 0 < shift; --shift) {
+            matrix.cell(0, shift) = matrix.cell(0, shift - 1);
+        }
+        matrix.cell(0, 0) = 0;
+    }
+    else {
+        return;
+    }
+
+    #if USE_PROGRESS_DISPLAY
+        progress.hide();
+    #endif
+
+    std::cout << format_comment << std::endl;
+
+    #if USE_PROGRESS_DISPLAY
+        progress.show();
+    #endif
+}
+
+template <class P> inline void incrementProgress(P& progress) {
+    ++progress;
+}
+
 template <class F=std::stringstream, class M> 
     void loadDistanceMatrixFromOpenFile
         (F& in, bool reportProgress, M& matrix) {
@@ -408,6 +448,8 @@ template <class F=std::stringstream, class M>
 #if USE_PROGRESS_DISPLAY
     const char* taskDescription = reportProgress ? "Loading distance matrix" : "";
     progress_display progress(rank, taskDescription, "loaded", "row");
+#else
+    intptr_t progress=0;
 #endif
     for (intptr_t r = 0; r < rank; ++r) {
         std::stringstream line;
@@ -427,34 +469,9 @@ template <class F=std::stringstream, class M>
         intptr_t cStop  = (lower) ? r : rank;
         intptr_t c      = loadPartialRowFromLine(line, matrix, square, 
                                                  r,    cStart, cStop);
-        const char* format_comment = nullptr;
 
         if (line.tellg() == -1 && c < cStop) {
-            if (square && r == 0 && c == 0) {
-                //Implied lower-triangle format
-                square         = false;
-                lower          = true;
-                format_comment = "Input appears to be in lower-triangle format" ;
-            }
-            else if (square && r == 0 && c + 1 == cStop) {
-                //Implied upper-triangle format
-                square         = false;
-                upper          = true;
-                format_comment = "Input appears to be in upper-triangle format" ;
-                for (size_t shift = cStop - 1; 0 < shift; --shift) {
-                    matrix.cell(0, shift) = matrix.cell(0, shift - 1);
-                }
-                matrix.cell(0, 0) = 0;
-            }
-            if (format_comment!=nullptr) {
-#if USE_PROGRESS_DISPLAY
-                progress.hide();
-#endif
-                std::cout << format_comment << std::endl;
-#if USE_PROGRESS_DISPLAY
-                progress.show();
-#endif
-            }
+            recognizeFormat(r,c,cStop,square,lower,upper,matrix,progress);
         }
         else if (line.tellg() != -1) {
             std::stringstream problem;
@@ -465,9 +482,7 @@ template <class F=std::stringstream, class M>
                 << " but there were more distances.";
             throw problem.str();
         }
-        #if USE_PROGRESS_DISPLAY
-            ++progress;
-        #endif
+        incrementProgress(progress);
     }
     if (lower) {
         copyLowerTriangleOfMatrixToUpper(matrix);
