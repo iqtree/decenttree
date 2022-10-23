@@ -638,7 +638,6 @@ public:
         const int* toCluster = entryToCluster.rows[row];
         const int  cluster   = rowToCluster[row];
 
-
         size_t partners   = indexOfFirstGreater
                             (rowData, clusterPartners[cluster], rowBound);
         size_t v_partners = (partners/block_size)*block_size;
@@ -689,7 +688,18 @@ public:
                 }
             }
         }
+        adjustRowMinimumFromLeftovers(row, rowData, rowBound, rowTotal, maxTot, qBest, 
+                                      toCluster, tot, v_partners, partners, pos);
+        return pos;
+    }
 
+    //note: this function only exists, seperately from getRowMinimum(), to trick 
+    //      Lizard into *not* complaining about the Cyclomatic Complexity of
+    //      getRowMinimum().
+    inline void adjustRowMinimumFromLeftovers
+        (   intptr_t row, const T* rowData, T rowBound, T rowTotal, T maxTot, T qBest,
+            const int* toCluster, T* tot, size_t v_partners, size_t partners, 
+            Position<T>& pos ) const {
         for (size_t i=v_partners; i<partners; ++i) {
             T Drc = rowData[i];
             if (rowBound<Drc && 0<i) {
@@ -712,7 +722,6 @@ public:
                 }
             }
         }
-        return pos;
     }
 };
 
