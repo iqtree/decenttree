@@ -1,12 +1,11 @@
 <h1>decenttree Algorithm Implementation Details</h1>
 All neighbour-joining algorithms rely on matrices of distances between clusters (of one taxon or multiple taxa). Most calculate adjusted distances, taking into account how far individual clusters are, on average, from other clusters, and some use auxiliary matrices (such as the estimated variance matrix of BIONJ), but all use matrices of distances.<p>
 
-The decenttree algorithms (except for the ONJ algorithms, which use triangular matrices), make use of square matrices (using triangular matrices would reduce memory consumption by a factor of 2, but would considerably increase the cost of accessing entries in the matrix, and matrix access would also be much harder to vectorize efficiently).
+The decenttree algorithms (except for the ONJ algorithms, which use triangular matrices), make use of square matrices (using triangular matrices would reduce memory consumption by a factor of 2, but would considerably increase the cost of accessing entries in the matrix, and matrix access would also have been much more difficult to vectorize efficiently).
 
-The vast bulk of the memory required by the decenttree distance matrix tree inference algorithms, is that used to track the ( n * n entry) distance matrices themselves.  There are also some vectors, the track clusters to be considered, or the structure of the subtrees for the clsuters yet to be joined, but these are much smaller (of size proportional to n, rather than n * n).
+The bulk of the memory required by the decenttree distance matrix tree inference algorithms, is that used to track the ( n * n entry) distance matrices themselves.  There are also some vectors, the track clusters to be considered, or the structure of the subtrees for the clsuters yet to be joined, but these are much smaller (of size proportional to n, rather than n * n).
 
 <h2>Memory Requirements</h2>
-
 
 Each of the working matrices require the same amount of memory (approximately 4 * n * n bytes,
 where n is the number of taxa), except for the double precision versions (where the D, V, and S
@@ -36,3 +35,4 @@ appear to be slightly slower) than the NJ-R and NJ-R-V implementations.
 | BIONJ-V  | D, V        | Vectorized version of BIONJ              | |
 | BIONJ-R  | D, V, S, I  | BIONJ with branch-and-bound optimization | Recommended. But slower than NJ-R |
 | AUCTION  | D, S, I     | Reverse auction cluster joining          | Experimental. Not recommended |
+
