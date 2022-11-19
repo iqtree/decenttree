@@ -286,7 +286,7 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
     if (algorithm_name==nullptr) {
         complaint << "Algorithm name not specified";
     } else {
-        algorithm = StartTree::Factory::getInstance().getTreeBuilderByName(algorithm_name);
+        algorithm = StartTree::Registry::getInstance().getTreeBuilderByName(algorithm_name);
     }
     std::string  problem;
     std::string  tree_string;
@@ -387,8 +387,8 @@ static PyObject* pydecenttree_getAlgorithmNames
         return nullptr;
     }
     bool withDescriptions = (descriptions!=0);
-    StartTree::Factory& factory = StartTree::Factory::getInstance();
-    auto names   = factory.getVectorOfTreeBuilderNames(withDescriptions);
+    StartTree::Registry& registry = StartTree::Registry::getInstance();
+    auto names   = registry.getVectorOfTreeBuilderNames(withDescriptions);
     return StringVectorToPythonList(names);
 }
 

@@ -1,7 +1,7 @@
 //
 //  DecentTree.cpp
 //
-//  Copyright (C) 2020, James Barbetti.
+//  Copyright (C) 2020-2022, James Barbetti.
 //
 //  LICENSE:
 //* This program is free software; you can redistribute it and/or modify
@@ -28,7 +28,7 @@
 #include <utils/operatingsystem.h> //for getOSName
 #include <utils/hammingdistance.h> //for hammingDistance
 #include <utils/stringfunctions.h> //for contains
-#include "starttree.h"       //for StartTree::Factory
+#include "starttree.h"       //for StartTree::Registry
 #include "flatmatrix.h"      //for FlatMatrix
 #include "distancematrix.h"  //for loadDistanceMatrixInto
 #include "sequence.h"        //for 
@@ -39,20 +39,48 @@
 #define PROBLEM(x) { problems << x << ".\n"; }
 
 namespace {
-
-    bool   correcting_distances     = true;
-    bool   is_DNA                   = true;
-    bool   numbered_names           = false;
-    bool   filter_problem_sequences = false;
-    char   unknown_char             = 'N';
-    double max_distance             = 10.0;
-    int    precision                = 8;
-    int    compression_level        = 9;
+    bool   correcting_distances     = true;  //Use Jukes-Cantor distance correction
+                                             //when calculating distances between
+                                             //taxons (for an alignment).
+    bool   is_DNA                   = true;  //Sequence data, for an alignment 
+                                             //is (A,G,C,T) DNA.
+    bool   numbered_names           = false; //True if all sequence names are to be
+                                             //replaced with names based on the 
+                                             //sequence number (e.g. for when 
+                                             //sequences in an input alignment 
+                                             //have very long names, or names 
+                                             //that contain characters that will be
+                                             //problematic for the distance matrix 
+                                             //program that will be passed the
+                                             //distance matrix decentTree calculates
+                                             //from the alignment).
+    bool   filter_problem_sequences = false; //When processing alignments to generate
+                                             //a distance matrix, and there are pairs of
+                                             //sequences for which the distance cannot
+                                             //be calculated (because there aren't *any* 
+                                             //comparable characters, remove the sequence
+                                             //with the greatest number of unknown sites).
+                                             //(if set).
+    char   unknown_char             = 'N';   //The character that indicates an 
+                                             //site with an unknown state 
+                                             //(e.g. for DNA, unknown nucleotide).
+    double max_distance             = 10.0;  //An upper bound on (corrected) distance.
+                                             //(The upper bound on uncorrected distance 
+                                             // is always: 1).
+    int    precision                = 8;     //(in distance matrix or tree output files)
+    int    compression_level        = 9;     //(if outputting gzipped files)
     std::string msaOutputPath; //write .msa formatted version of .fasta input here
     std::string alphabet;      //defaults to ACGT
     std::string unknown_chars; //defaults to .~_-?N
     std::string format              = "square.interleaved";
-    bool        interleaved_format  = true;
+    bool        interleaved_format  = true; //if true, when generating an MSA format
+                                        //file (an input for FASTME) 
+                                        //generate the interleaved format 
+                                        //(which is the only format FASTME accepts).
+                                        //(has no effect unless -msa-out option
+                                        //is requested).
+    size_t      interleaving_width = 60; //how many sites to output per line, if
+                                         //interleaved_format is true
 
     std::string stripName;              //characters to strip from names
     std::string nameReplace("_");       //characters to replace stripepd chars with, in names
@@ -60,15 +88,17 @@ namespace {
                                         //e.g. to make IQTree happy, truncate at space " ".
 };
 
+/** Show a banner for decentTree */
 void showBanner() {
-    std::cout << "\nDecentTree for " << getOSName() << "\n";
+    std::cout << "\ndecentTree for " << getOSName() << "\n";
     std::cout << "Based on algorithms (UPGMA, NJ, BIONJ) proposed by Sokal & Michener [1958],\n";
     std::cout << "Saitou & Nei [1987], Gascuel [1997] and [2009]\n";
     std::cout << "Incorporating (in NJ-R and BIONJ-R) techniques proposed by Simonson, Mailund, and Pedersen [2011]\n";
-    std::cout << "Developed by Olivier Gascuel [2009], Hoa Sien Cuong [2009], James Barbetti [2020]\n";
+    std::cout << "Developed by Olivier Gascuel [2009], Hoa Sien Cuong [2009], James Barbetti [2020-22]\n";
     std::cout << "(To suppress this banner pass -no-banner)\n";
 }
 
+/** Show a summary of decentTree's command line syntax and options */
 void showUsage() {
     std::cout << "Usage: decenttree (-fasta [fastapath] (-strip-name [stripped]) \n";
     std::cout << "       (-name-replace [reps]) (-truncate-name-at [chars])\n";
@@ -100,8 +130,21 @@ void showUsage() {
     std::cout << "[prec]       is a precision (default 6)\n";
     std::cout << "[algorithm]  is one of the following, supported, distance matrix algorithms:\n";
 
-    std::cout << StartTree::Factory::getInstance().getListOfTreeBuilders();
+    std::cout << StartTree::Registry::getInstance().getListOfTreeBuilders();
 }
+
+/**
+ * @brief Load sequences into a distance matrix
+ * 
+ * @param sequences        (input) the sequences to load
+ * @param is_site_variant  a vector, with a size equal to the number of sites,
+ *                         which indicates (with a non-zero) value which sites
+ *                         vary.
+ * @param report_progress  whether to display a progress bar
+ * @param m                (output) the distance matrix
+ * @return true  (if the sequences could be loaded, their distances calculated)
+ * @return false (if an error occurred)
+ */
 
 bool loadSequenceDistancesIntoMatrix(Sequences& sequences,
                                      const std::vector<char>&   is_site_variant,
@@ -114,6 +157,21 @@ bool loadSequenceDistancesIntoMatrix(Sequences& sequences,
     return success;
 }
 
+/**
+ * @brief Write sequences as an MSA output file
+ *
+ * if interleaved_format is true, an interleaved MSA output format 
+ * will be used.  The first interleaving_width sites for each sequence will
+ * be listed, followed by the next interleaving_width, and so on.
+ * 
+ * if interleaved_format is false, each sequence (no matter how long)
+ * will be written on a single line.
+ * 
+ * @param sequences the sequences to write to the output file
+ * @param msaPath   the path to the file
+ * @return true     if the sequences could be written to the file
+ * @return false    if an error occurred
+ */
 bool writeMSAOutputFile(Sequences& sequences, const std::string& msaPath)
 {
     //This is writing a format that fastme likes for its inputs.
@@ -128,7 +186,7 @@ bool writeMSAOutputFile(Sequences& sequences, const std::string& msaPath)
         //Todo: The following is for the interleaved sequence format
         //      that fastme likes.
         if (interleaved_format) {
-            for (size_t pos=0; pos<len; pos+=60) {
+            for (size_t pos=0; pos<len; pos+=interleaving_width) {
                 for (size_t i=0; i<sequences.size(); ++i) {
                     const std::string& seq_data = sequences[i].sequenceData();
                     if (pos==0) {
@@ -136,7 +194,7 @@ bool writeMSAOutputFile(Sequences& sequences, const std::string& msaPath)
                     } else {
                         out << "      ";
                     }
-                    size_t posEnd = pos + 60;
+                    size_t posEnd = pos + interleaving_width;
                     if (len<posEnd) posEnd = len;
                     for (size_t block=pos; block<posEnd; block+=10) {
                         size_t blockEnd = block + 10;
@@ -170,6 +228,19 @@ bool writeMSAOutputFile(Sequences& sequences, const std::string& msaPath)
     return success;
 }
 
+/**
+ * @brief Remove, from Sequences (and a FlatMatrix) holding the distances
+ *        between those seuqences, all of the sequences that have been 
+ *        taggged as problematic (the sequences for which isProblematic()
+ *        returns true).
+ *        Problematic sequences (which are sequences for which distances 
+ *        to at least some other sequences cannot be calculated, because 
+ *        they have no known characters in common), are detected by
+ *        SequenceLoader::getDistanceBetweenSequences().
+ * 
+ * @param sequences 
+ * @param m 
+ */
 void removeProblematicSequences(Sequences& sequences,
                                 FlatMatrix& m) {
     size_t count_problem_sequences = sequences.countOfProblematicSequences();
@@ -180,7 +251,7 @@ void removeProblematicSequences(Sequences& sequences,
     FlatMatrix old_matrix;
     
     std::cout << "Removing " << count_problem_sequences
-        << " problematic sequences." << std::endl;
+              << " problematic sequences." << std::endl;
     
     double startTime = getRealTime();
     std::swap(sequences, old_sequences);
@@ -202,10 +273,37 @@ void removeProblematicSequences(Sequences& sequences,
         }
     }
     std::cout << "Removed sequences"
-        << " in " << (getRealTime() - startTime)
-        << " wall-clock seconds." << std::endl;
+              << " in " << (getRealTime() - startTime)
+              << " wall-clock seconds." << std::endl;
 }
 
+/**
+ * @brief Process input files, and (possibly) load a distance matrix 
+ *        (either by reading a distance matrix file, or by calculating -
+ *        uncorrected or corrected - hamming distances between sequences)
+ * 
+ * @param fastaFilePath  the file path for a fasta format sequence file 
+ *                       (if one is set, blank if not)
+ * @param phylipFilePath the file path for a phylip format sequence file
+ *                       (if one is set, blank if not)
+ * @param matrixInputFilePath    the file path for a distance matrix file
+ * @param reportProgress         true if a progress bar is to be displayed
+ * @param distanceOutputFilePath the file path to write a copy of the 
+ *                               distance matrix to (if set, blank if not)
+ * @param sequences      (output) the sequences
+ * @param loadMatrix     true if the distance matrix is to be loaded
+ * @param m              (output) the distance matrix to load
+ * @return true   (if everything succeeds)
+ * @return false  (if no input is specified, or there is any sort of error)
+ *
+ * @note If fastaFilePath and phylipFilePath are both non-blank, 
+ *       fastaFilePath will be honoured, and phylipFilePath ignored.
+ * @note if either fastaFilePath and phylipFilePath are set, 
+ *       distanceOutputFilePath will be ignored.
+ * @note if loadMatrix is false, and a distanceOutputFilePath is supplied,
+ *       SequenceLoader's writeDistanceMatrixToFile is used to write
+ *       distances, row by row, without loading a distance matrix.
+ */
 bool prepInput(const std::string& fastaFilePath,
                const std::string& phylipFilePath,
                const std::string& matrixInputFilePath,
@@ -273,6 +371,19 @@ bool prepInput(const std::string& fastaFilePath,
     return true;
 }
 
+/**
+ * @brief restrict the range of an (in/out) thing to a range
+ *        
+ * @tparam T the type (for which operator< and operator= must exist)
+ * @param lo the minimum value for the range (if restrict_me is less than *lo*,
+ *           restrict_me will be set to *lo*).
+ * @param hi the maixmum value for the range (if *hi* is less than restrict_me,
+ *           restrict_me will be set to *hi*).
+ * @param restrict_me 
+ *
+ * @note it is assumed that lo <= hi. In effect:
+ *       if hi<lo, restrict_me will be set to min(restrict_me,lo)...
+ */
 template <class T> void range_restrict(const T lo, const T hi, T& restrict_me) {
     if (restrict_me < lo) {
         restrict_me = lo;
@@ -281,31 +392,49 @@ template <class T> void range_restrict(const T lo, const T hi, T& restrict_me) {
     }
 }
 
+/**
+ * @brief Tracks the settings of command-line options passed to 
+ *        decentTree
+ */
 class DecentTreeOptions {
 public:
-    std::stringstream problems;
-    std::string algorithmName;
-    std::string fastaFilePath;          //fasta alignment
-    std::string phylipFilePath;         //phylip alignment 
-    std::string inputFilePath;          //phylip distance matrix formats are supported
-    std::string outputFilePath;         //newick tree format
-    std::string distanceOutputFilePath; //phylip distance matrix format
+    std::stringstream problems;         //accumulates any error messages
+    std::string algorithmName;          //the name of the distance matrix algorithm
+    std::string fastaFilePath;          //file path of fasta file, to load equence alignment from
+    std::string phylipFilePath;         //file path of phylip file, to load sequence alignment from
+    std::string inputFilePath;          //file path of phylip distance matrix file
+                                        //(square and triangular) formats are supported
+    std::string outputFilePath;         //file path of newick tree format output file
+    std::string distanceOutputFilePath; //file path of phylip distance matrix format output file
 
-    bool isOutputZipped            = false;
-    bool isOutputSuppressed        = false;
+    bool isOutputZipped            = false; //true if output is to be zipped
+    bool isOutputSuppressed        = false; //true if no output is to be written
+                                            //e.g. if benchmarking phylogenetic inference
+                                            //     algorithms against one another.
     bool isOutputToStandardOutput  = false; //caller asked for newick tree to go to std::cout
-    bool isBannerSuppressed        = false;
-    int  threadCount               = 0;
-    bool beSilent                  = false;
+    bool isBannerSuppressed        = false; //true if the program's banner is to be suppressed
+    int  threadCount               = 0;     //number of threads to use (0 is "unset", or...
+                                            //as many as are available)
+    bool beSilent                  = false; //true if minimal output is to be written
+    bool beVerbose                 = false; //true if additional explanatory output is 
+                                            //to be writen to standard output
     bool isMatrixToBeLoaded        = true;  //set to false if caller passes -no-matrix
-    bool isTreeConstructionSkipped = false;
-    bool beVerbose                 = false;
-    bool showBar                   = false;
+    bool isTreeConstructionSkipped = false; //becomes true if phylogenetic inference (or 
+                                            //"tree construction") is to be skipped.
+                                            //(e.g. if decentTree is being used to generate
+                                            //an MSA file for FastME, or a distance matrix 
+                                            //input for some other distance matrix 
+                                            //phylogenetic inference program)
+    bool showBar                   = false; //true if a progress bar is to be displayed
 
     ArgumentMap arg_map;
 
+    /**
+     * @brief Construct a new Decent Tree Options object
+     */
+
     DecentTreeOptions()
-        : algorithmName(StartTree::Factory::getNameOfDefaultTreeBuilder()) {
+        : algorithmName(StartTree::Registry::getNameOfDefaultTreeBuilder()) {
         isOutputZipped            = false;
         isOutputSuppressed        = false;
         isOutputToStandardOutput  = false; //caller asked for newick tree to go to std::cout
@@ -318,6 +447,14 @@ public:
         initializeArgumentMap();
     }
 
+    /**
+     * @brief Set up a map, between recognized arguments and string,
+     *        integer, double, and boolean variables.
+     *        When the command line is parsed, actual arguments will
+     *        be compared with recognized arguments, in the map, and
+     *        the corresponding std::string, int, double, or bool 
+     *        variables set.
+     */
     void initializeArgumentMap() {
         arg_map << new StringArgument("-fasta", "fasta file path",             fastaFilePath);
         arg_map << new StringArgument("-phylip", "phylip alignment file path", phylipFilePath);
@@ -356,6 +493,17 @@ public:
         arg_map << new SwitchArgument("-bar",         showBar,                  true);
     }
 
+    /**
+     * @brief Process command line options. Restrict maximum distance,
+     *        compression level, and precision, to sensible ranges.
+     * 
+     * @param argc the number of command line options
+     * @param argv an array of command line options (string constants)
+     *
+     * @note  The only command-line argument that needs special 
+     *        treatment is -t (which specifies a distance-matrix
+     *        algorithm to be used for phylogenetic inference).
+     */
     void processCommandLineOptions(int argc, char* argv[]) {
         for (int argNum=1; argNum<argc; ++argNum) {
             std::string arg     = argv[argNum];
@@ -373,7 +521,7 @@ public:
                 } else {
                     PROBLEM("Algorithm name " + nextArg + " not recognized");
                     PROBLEM("Recognized distance matrix algorithms are:");
-                    PROBLEM(StartTree::Factory::getInstance().getListOfTreeBuilders());
+                    PROBLEM(StartTree::Registry::getInstance().getListOfTreeBuilders());
                 }
                 ++argNum;
             }
@@ -407,6 +555,13 @@ public:
         }
     }
 
+    /**
+     * @brief Check command-line options for consistency.
+     * 
+     * @return true  (if they're okay)
+     * @return false (if they're self-contradictory, e.g. more than one
+     *                input file is specified).
+     */
     bool checkCommandLineOptions() {
         if (inputFilePath.empty() && fastaFilePath.empty() && phylipFilePath.empty()) {
             PROBLEM("Input (mldist) file should be specified via -in [filepath.mldist]");
@@ -433,6 +588,12 @@ public:
         }
         return true;
     }
+
+    /**
+     * @brief Set the number of threads to use (if Open MP is supported)
+     * @note  If the number of threads hasn't been set, or 0 has been requested,
+     *        the maximum thread count will be used.     
+     */
     void configureThreading() {
         if (threadCount!=0) {
             #ifdef _OPENMP
@@ -455,6 +616,15 @@ public:
 
 int obeyCommandLineOptions(DecentTreeOptions& options);
 
+/**
+ * @brief entry point for decenttree.cpp
+ * 
+ * @param argc number of command line arguments
+ * @param argv command line arguments
+ * @return int (0 if the command-line arguments are valid and no errors are
+ *             reported; 1 if the command-line arguments are invalid or an
+ *             error occurs))
+ */
 int main(int argc, char* argv[]) {
     DecentTreeOptions options;
 
@@ -475,6 +645,18 @@ int main(int argc, char* argv[]) {
     return obeyCommandLineOptions(options);
 }
 
+/**
+ * @brief  Obey the pre-parsed command line options.
+ *         (i)  load input files (if instructed to) 
+ *              and/or calculate distance matrix from
+ *              alignment (if instructed to)
+ *         (ii) run the indicated distance matrix 
+ *              phylogenetic algorithm (unless told not to)
+ *              either in-memory
+ * 
+ * @param  options the options read from the command line
+ * @return int     1 if an error occurred, 0 otherwise
+ */
 int obeyCommandLineOptions(DecentTreeOptions& options) {
 
     #if USE_PROGRESS_DISPLAY
@@ -482,7 +664,7 @@ int obeyCommandLineOptions(DecentTreeOptions& options) {
     #endif
 
     StartTree::BuilderInterface* algorithm = 
-        StartTree::Factory::getTreeBuilderByName(options.algorithmName);
+        StartTree::Registry::getTreeBuilderByName(options.algorithmName);
     if (!options.isTreeConstructionSkipped) {
         if (algorithm==nullptr) {
             std::cerr << "Tree builder algorithm was unexpectedly null"

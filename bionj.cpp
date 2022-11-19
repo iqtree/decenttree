@@ -904,7 +904,7 @@ public:
 };
 
 namespace StartTree {
-    void addBioNJ2009TreeBuilders(Factory& f) {
+    void addBioNJ2009TreeBuilders(Registry& f) {
         f.advertiseTreeBuilder(new BIONJ2009Adapter());
     }
 }

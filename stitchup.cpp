@@ -98,9 +98,9 @@ namespace StartTree
 
 template <class T=double> class Stitch { //an Edge in a stitch-up graph
 public:
-    size_t source;      //
-    size_t destination; //
-    T      length;      //
+    intptr_t source;      //
+    intptr_t destination; //
+    T        length;      //
     Stitch() : source(0), destination(0), length(0) { }
     Stitch(size_t sourceIndex, size_t destinationIndex, T edgeLength):
         source(sourceIndex), destination(destinationIndex), length(edgeLength) {
@@ -275,7 +275,7 @@ template <class T=double> struct StitchupGraph {
         size_t   degree    = 0;  //Degree of that node
         for (auto it=stitches.begin(); it!=stitches.end(); ++it) {
             if (it->source != node) {
-                if (node!=-1) {
+                if (node != -1) {
                     if (degree!=2) {
                         replacements[node] = node;
                         replacementLengths[node] = 0;
@@ -339,10 +339,10 @@ template <class T=double> struct StitchupGraph {
                               progress_display_ptr progress, F& out) const {
         auto lastEdge = stitches.end();
         --lastEdge;
-        size_t lastNodeIndex = lastEdge->source;
-        size_t edgeCount = stitches.size();
+        size_t   lastNodeIndex = lastEdge->source;
+        intptr_t edgeCount = stitches.size();
         std::vector<Stitch<T>> stitchVector;
-        std::vector<size_t>    nodeToEdge;
+        std::vector<intptr_t>  nodeToEdge;
         nodeToEdge.resize(lastNodeIndex+1, edgeCount);
         int j = 0;
         for (auto it=stitches.begin(); it!=stitches.end(); ++it, ++j) {
@@ -398,11 +398,11 @@ template <class T=double> struct StitchupGraph {
     }
     template <class F>
     void writeSubtree ( const std::vector<Stitch<T>>& stitchVector, 
-                        std::vector<size_t> nodeToEdge,
-                        const Stitch<T>* backstop, size_t nodeIndex,
+                        std::vector<intptr_t> nodeToEdge,
+                        const Stitch<T>* backstop, intptr_t nodeIndex,
                         bool noBrackets,
                         progress_display_ptr progress, F& out) const {
-        bool isLeaf = ( nodeIndex < leafNames.size() );
+        bool isLeaf = ( nodeIndex < (intptr_t)leafNames.size() );
         if (isLeaf) {
             out << leafNames [ nodeIndex ] ;
         } else {
@@ -410,8 +410,8 @@ template <class T=double> struct StitchupGraph {
                 out << "(";
             }
             const char* sep = "";
-            size_t x = nodeToEdge[nodeIndex];
-            size_t y = stitchVector.size();
+            intptr_t x = nodeToEdge[nodeIndex];
+            intptr_t y = stitchVector.size();
             nodeToEdge[nodeIndex] = y;
             for (; x<y && stitchVector[x].source == nodeIndex; ++x) {
                 size_t child = stitchVector[x].destination;
@@ -652,9 +652,9 @@ public:
         intptr_t taxon_count = row_count;
         size_t   iterations  = 0;
 
-        std::vector<size_t> taxonToRow;
+        std::vector<intptr_t> taxonToRow;
         taxonToRow.resize(taxon_count);
-        size_t* tr = taxonToRow.data();
+        intptr_t* tr = taxonToRow.data();
         #ifdef _OPENMP
         #pragma omp parallel for
         #endif
@@ -673,8 +673,8 @@ public:
                     && iterations < heap_size);
             size_t rA = tr[shortest.taxon1];
             size_t rB = tr[shortest.taxon2];
-            size_t r1 = (rA<rB) ? rA : rB;
-            size_t r2 = (rB<rA) ? rA : rB;
+            intptr_t r1 = (rA<rB) ? rA : rB;
+            intptr_t r2 = (rB<rA) ? rA : rB;
             cluster( r1, r2);
             #ifdef _OPENMP
             #pragma omp parallel for
@@ -722,7 +722,7 @@ public:
     }
 };
 
-void addStitchupTreeBuilders(Factory& f) {
+void addStitchupTreeBuilders(Registry& f) {
     f.advertiseTreeBuilder( new Builder<StitchupMatrix<double>>
         ("STITCH",      "Family Stitch-up (Lowest Cost)"));
     f.advertiseTreeBuilder( new Builder<NearestTaxonClusterJoiningMatrix<double>>
