@@ -150,7 +150,7 @@ bool FlatMatrix::writeToDistanceFile(const std::string& format,
             writeDistancesToOpenFile(format, precision, out, &progress);
             out.close();
         }
-    } catch (std::ios::failure) {
+    } catch (const std::ios::failure &) {
         return false;
     }
     #if USE_PROGRESS_DISPLAY        
