@@ -53,12 +53,12 @@ template <class T, int s>
 }
 
 template <class T, int s, class B> 
-    FakeVector<T,s> select ( const FakeVector<B,s>& isLess,
+    FakeVector<T,s> select ( const FakeVector<B,s>& isLeft,
                              const FakeVector<T,s>& left,
                              const FakeVector<T,s>& right ) {
     FakeVector<T,s> result;
     for (int i=0; i<s; ++i) {
-        result.data[i] = (isLess.data[i]==-1) 
+        result.data[i] = (isLeft.data[i]!=0) 
                        ? left.data[i] : right.data[i];
     }
     return result;
