@@ -29,11 +29,13 @@
 #endif
 
 //
-//Note 1: L is a template parameter so that, when the state range
-//        is 255 or less, it can be char, or if 65535 or less, short.
-//Note 2: F is a template parameter so that, when the maximum
-//        frequency is 255 or less, it could be unsigned char,
-//        or if 65535 or less, short.
+//Summary: Determine the hamming distance between two sequences.
+//         (unknown is a wildcard character that will match any character)
+//Note 1:  L is a template parameter so that, when the state range
+//         is 255 or less, it can be char, or if 65535 or less, short.
+//Note 2:  F is a template parameter so that, when the maximum
+//         frequency is 255 or less, it could be unsigned char,
+//         or if 65535 or less, short.
 //
 template <class L, class F> inline double hammingDistance
         ( L unknown, const L* sequenceA, const L* sequenceB
@@ -51,10 +53,12 @@ template <class L, class F> inline double hammingDistance
     return distance;
 }
 
-//Proper name (for what this function does) is perhaps: 
+//
+//The proper name (for what this function does) is perhaps: 
 //sumOfFrequenciesOfCharactersGreaterThanOrEqualTo
 //But for now, this function is named after what
 //it is used for.
+//
 template <class L, class F> inline size_t sumForUnknownCharacters
     (L boundaryChar, const L* sequence, int seqLen, const F* frequencyVector) {
     size_t sum = 0;
