@@ -470,7 +470,7 @@ void SequenceLoader::setUpSerializedData() {
         const char* read_site = sequence_data[row];
         uint64_t*   write_unk = unknown_data[row];
         uint64_t          unk = 0;
-        for (intptr_t col=0; col<seqLen; ++col) {
+        for (intptr_t col=0; col<(intptr_t)seqLen; ++col) {
             unk <<= 1;
             if (read_site[col] == unknown_char ) {
                 ++unk;
