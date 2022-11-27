@@ -63,6 +63,16 @@ namespace StartTree
 #define ADVERTISE(type, shortName, longName) \
     f.advertiseTreeBuilder( new Builder<type>( shortName, longName))
 
+/**
+ * @brief Register tree-building implementations, in a registry of same,
+ *        that are defined in the upgma.h, nj.h, rapidnj.h, auctionmatrix.h,
+ *        and fancyrapidnj.h headers.
+ * @param f - the "starting tree" distance-matrix phylogenetic inference 
+ *            algorithm registry to which the implementations are to be
+ *            added.
+ * @note  The vectorized implementations are only included if the
+ *        USE_VECTORCLASS_LIBRARY is defined and is set to a non-zero value.
+ */
 void addBioNJ2020TreeBuilders(Registry& f) {
     const char* defaultName = "RapidNJ";
     ADVERTISE(NJMatrix<NJFloat>,     "NJ",      "Neighbour Joining (Saitou, Nei [1987])");
