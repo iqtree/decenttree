@@ -23,14 +23,14 @@
 //               (Biomedical Engineering Systems and Technologies:
 //               3rd International Joint Conference, BIOSTEC 2010,
 //               Revised Selected Papers), volume 127, pages 334-344,
-//               Springer Verlag, 2011.
+//               Springer Verlag, 2011. [Simonsen+Mailund+Pedersen]
 //
 //  FancyNJMatrix<T> differs from BoundingMatrix<T, NJMatrix<T>> in several
 //  respects, because it implemented with space efficiency performance in mind 
 //  (BoundingMatrix was NOT; it was implemented to be easy to read, easy
 //  to "map" back to the paper it is based on).
 //
-//  Copyright James Barbetti (2021)
+//  Copyright James Barbetti (2021-22)
 //
 //  LICENSE:
 //* This program is free software; you can redistribute it and/or modify
@@ -65,13 +65,24 @@
 #define  FNJ_TRACE(x) {}
 
 namespace StartTree {
+/**
+ * @brief  An alternative implementation of the Rapid NJ algorithm
+ *         (somewhat closer to the [Simonsen+Mailund+Pedersen] one,
+ *         with { cluster, distance } entries in a matrix vector 
+ *         of row vectors (rather than a single flattened out array).
+ * @tparam T 
+ */
 template <class T=NJFloat> class FancyNJMatrix {
 protected:
-    bool           be_silent;
-    bool           zip_it;
-    bool           append_file;          
-    bool           is_rooted;
-    bool           omit_semicolon;
+    bool           be_silent;      //true if log messages are to be suppressed
+    bool           zip_it;         //true if output is to be compressed
+    bool           append_file;    //true if the output file is to be appended
+                                   //(false if it is to be truncated)
+    bool           is_rooted;      //true if the "top" node is to be degree 2
+                                   //(false if it to be dgree 3)
+    bool           omit_semicolon; //true if the semi-colon at the end of the
+                                   //output is to be omitted (e.g. when 
+                                   //calculating a subtree rather than a tree).
     ClusterTree<T> clusters;
     #if USE_GZSTREAM
         #if USE_PROGRESS_DISPLAY
@@ -104,17 +115,22 @@ protected:
     typedef std::vector<MatrixEntry>  EntryVector;
     typedef std::vector<MatrixEntry*> EntryPtrVector;
 
-    intptr_t       original_rank;
-    intptr_t       next_cluster_number;
-    IntVector      cluster_in_play;
-    DistanceVector cluster_total;
-    DistanceVector cluster_total_scaled;
+    intptr_t       original_rank;        //the rank of the matrix before any
+                                         //clusters were joined
+    intptr_t       next_cluster_number;  //the cluster number to use next
+    IntVector      cluster_in_play;      //indicates which clusters are in use
+                                         //(it's an IntVector, rather than a vector
+                                         //of bool, because std::vector<bool> tends
+                                         //*not* to be multi-thread-friendly).
+                                         //For each cluster:
+    DistanceVector cluster_total;        // - The total of distances to other clsuters
+    DistanceVector cluster_total_scaled; // - The same, scaled (divided by (n-2))
     DistanceVector cluster_cutoff;
-    EntryPtrVector cluster_sorted_start;
+    EntryPtrVector cluster_sorted_start; 
     EntryPtrVector cluster_sorted_stop;
     EntryPtrVector cluster_unsorted_start;
     EntryPtrVector cluster_unsorted_stop;
-    IntVector      cluster_row;
+    IntVector      cluster_row;            //maps a cluster number to a row number
 
                                   //when searching for clusters to merge:...
     IntVector      row_cluster;   //cluster number, y, of i(th) clusters still in play
@@ -129,12 +145,20 @@ protected:
     DistanceVector x_distances;   //distances to cluster x
     DistanceVector y_distances;   //distances to cluster y
 
-    int            threadCount;
-    typedef MergeSorter<MatrixEntry> Sorter;
-    std::vector<Sorter> sorters;
+    int            threadCount;               //the number of threads
+    typedef MergeSorter<MatrixEntry> Sorter;  //used for sorting matrix rows
+    std::vector<Sorter> sorters;              //mergesorting contexts (one per thread)
+                                              //(mergesorting requires an auxiliary array,
+                                              // and allocation of those arrays is amortized)
 
-    volatile T     global_best_dist;
+    volatile T     global_best_dist;          //best adusted distance found in curent iteration
 
+    /**
+    * @brief  Get the thread number of the current thread (e.g. for looking)
+    *         up the entry in sorters, that keeps track of the auxiliary arrays
+    *         allocated for the current thread.
+    * @return int - either the current thread number or (if not multithreading), 0.
+    */
     int getThreadNumber() const {
         #ifdef _OPENMP
             return omp_get_thread_num();
@@ -142,6 +166,11 @@ protected:
             return 0;
         #endif
     }
+
+    /**
+     * @brief  return the number of threads of execution
+     * @return int - the number of threads (always 1 if _OPENMP is not defined)
+     */
     int getThreadCount() const {
         #ifdef _OPENMP
             return omp_get_num_threads();
@@ -149,6 +178,7 @@ protected:
             return 1;
         #endif
     }
+
     DuplicateTaxa duplicate_taxa;
 
 public:
@@ -163,25 +193,54 @@ public:
         #endif
         sorters.resize(threadCount);
     }
+
     ~FancyNJMatrix() {
         for (int c=0; c<original_rank; ++c) {
             deallocateCluster(c);
         }
     }
+
     std::string getAlgorithmName() const {
         return "FancyNJ";
     }
+
+    /**
+     * @brief Turn off logging messages.
+     */
     void beSilent() { 
         be_silent = true; 
-    } 
+    }
+
+    /**
+     * @brief  Control whether output files are to be appended (true)
+     *         or overwritten (false).
+     * @param  appendIt - whether output files are to be appended
+     * @return true - always succeeds (this implementation appends when asked to)
+     */
     virtual bool setAppendFile(bool appendIt) {
         append_file = appendIt;
         return true;
     }
+
+    /**
+     * @brief  Control whether output files are to be compressed (true)
+     *         or not (false).
+     * @param  appendIt - whether output files are to be compressed
+     * @return true - always succeeds (this implementation supports 
+     *         compression)
+     */
     virtual bool setZippedOutput(bool zipIt) { 
         zip_it = zipIt;
         return true;
     }
+
+    /**
+     * @brief  load sequence names and a distance matrix, from the file
+     *         matching the specified file path
+     * @param  distanceMatrixFilePath - the file path
+     * @return true  - on success
+     * @return false - on failure (error message will be logged to std::cerr)
+     */
     virtual bool loadMatrixFromFile(const std::string &distanceMatrixFilePath) {
         INFILE(in);
         try {
@@ -202,11 +261,30 @@ public:
             return false;
         }
     }
+
+    /**
+     * @brief  Load sequence names and a distance matrix from an open file
+     * @param  in the file to load it from 
+     * @return true  - if the load was successful
+     * @return false - if there was an error (error message logged to std::cerr)
+     */
     virtual bool loadMatrixFromOpenFile(InFile& in) {
         FlatMatrix dummy;
         loadDistanceMatrixFromOpenFile(in, !be_silent, dummy);
         return this->loadMatrix(dummy.getSequenceNames(), dummy.getDistanceMatrix());
     }
+
+    /**
+     * @brief  Load a vector of sequence names, and a matrix of distances
+     * @param  names   a vector of n (unique!) sequence names
+     * @param  matrix  a pointer to the first element of a flat matrix of 
+     *                 size n*n (the distances between the sequences,
+     *                 stored in row-major order).
+     * @return true  - on success
+     * @return false - on failure
+     * @note   loading of data from (matrix) is parallelized, over rows,
+     *         if _OPENMP is defined.
+     */
     virtual bool loadMatrix(const StrVector& names,
                             const double* matrix) {
         #if USE_PROGRESS_DISPLAY
@@ -264,19 +342,49 @@ public:
         #endif
 
         identifyDuplicateTaxa(matrix);
-
         return true;
     }
+    /**
+     * @brief Hook for code that must execute before a tree is constructed
+     *        (there is any, so this does nothing at all)
+     */
     virtual void prepareToConstructTree() {
     }
+
+    /**
+     * @brief  Indicate whether the tree, to be inferred, is to have a top node
+     *         with a degree of 2 (if true), or of 3 (if false)
+     * @param  rootIt true, for a subtree (top node degree 2), false otherwise
+     * @return true   - if last/top "last-joined" node's degree is to be 2
+     * @return false  - if last node's degree is to be 3
+     */
     virtual bool setIsRooted(bool rootIt) {
         is_rooted = rootIt;
         return true;
     }
+
+    /**
+     * @brief  Indicate whether output is to include ( and ) characters
+     *         around the output for the tree or subtree (true if no '('
+     *         or ')' characters are wanted, false otherwise).
+     * @param  wantSubtree true if '(' and ')' characters to be dropped
+     * @return true  - this implementation supports outputting subtrees.
+     */
     virtual bool setSubtreeOnly(bool wantSubtree) {
         omit_semicolon = wantSubtree;
         return true;
     }
+
+    /**
+     * @brief  construct a tree via phylogenetic inference, using the
+     *         Rapid NJ algorithm.
+     * @return true  - on success (always!)
+     * @return false - on failure (never!)
+     * @note   periodically, items in per-cluster rows, that refer to
+     *         clusters that are "no longer in play" (that have already
+     *         been joined into larger clusters), are stripped out.
+     *         the code for this is tagged PURGE.
+     */
     virtual bool constructTree() {
         prepareToConstructTree();
         if (original_rank<3) {
@@ -290,8 +398,7 @@ public:
         double recalcTime  = 0.0;
         double previewTime = 0.0;
         double mergeTime   = 0.0;
-
-        int  next_purge = n * 7 / 8;
+        int    next_purge  = n * 7 / 8;
 
         intptr_t duplicate_merges = clusterDuplicateTaxa 
                                     (n, recalcTime, mergeTime);
@@ -307,6 +414,7 @@ public:
 
         for ( ; 1 < n ; --n) {
             if (n<=next_purge) {
+                //PURGE
                 purgeTime -= getRealTime();
                 removeOutOfPlayClusters(next_cluster_number);
                 next_purge = n*7/8;
@@ -349,22 +457,70 @@ public:
         reportConstructionDone(duplicate_merges, purgeTime, recalcTime, previewTime, mergeTime);
         return true;
     }
+
+    /**
+     * @brief  Calculate the root-mean-square of the matrix of 
+     *         differences between the tree-distances (between taxa) 
+     *         implied by the edge lengths in (clusters), and the
+     *         input distances (in a distance matrix, which should be
+     *         a copy of the input that was provided to the phylogenetic
+     *         inference algorithm).
+     * @param  matrix a flat matrix (rank*rank) of doubles in row-major 
+     *                order.
+     * @param  rank   the rank of the flat matrix.
+     * @param  rms    the root mean square will be written here.
+     * @return true if the calculation succeeded
+     * @note   it is assumed that rank is equal to the number of leaf
+     *         taxa in clusters, and that the rows and columns in
+     *         the distance matrix (pointed to by matrix) correspond
+     *         one-to-one and in order to the first (rank) clusters.
+     * @note   it is assumed that the distance matrix is symmetric.
+     *         it is assumed that the diagnal entries of the distance 
+     *         matrix are all zeroes.
+     */
     virtual bool calculateRMSOfTMinusD(const double* matrix, 
                                        intptr_t rank, double& rms) {
         return clusters.calculateRMSOfTMinusD(matrix, rank, rms);
     }
+
+    /**
+     * @brief  Write the current tree, in newick format to the file
+     *         matching the supplied file path.
+     * @param  precision the number of digits after the decimal point
+     *                   in distances, reported between nodes in the tree.
+     * @param  treeFilePath the file path to write to
+     * @return true  - if the write succeeds
+     * @return false - if the write fails
+     * @note   zip_it (compression on/off), append_file (append rather than overwrite,
+     *         and omit_semicolon (subtree only, no leading '(', trailing ");") 
+     *         are all honoured).
+     */
     virtual bool writeTreeFile     (int precision,
                                     const std::string &treeFilePath) const { 
         return clusters.writeTreeFile
                ( zip_it, precision, treeFilePath
                , append_file, omit_semicolon );
     }
+    /**
+     * @brief  Append the current tree, in newick format to an open I/O stream.
+     * @param  stream the output stream (std::ostream) to write to.
+     * @return true  - if the write succeeds
+     * @return false - if the write fails
+     * @note   zip_it (compression on/off), append_file (append rather than overwrite,
+     *         and omit_semicolon (subtree only, no leading '(', trailing ");") 
+     *         are all honoured).
+     * @note   it is expected that the caller will have set the precision already.
+     */
     virtual bool writeTreeToOpenFile(std::iostream &stream) const { 
         return clusters.writeTreeToOpenFile
                ( omit_semicolon, stream );
     }
 
 protected:
+    /**
+     * @brief Set the number of leaf taxa (or sequences)
+     * @param n the number of leaf taxa
+     */
     virtual void setRank(size_t n) {
         original_rank       = n;
         next_cluster_number = n;
@@ -396,13 +552,20 @@ protected:
         }
     }
 
+    /**
+     * @brief Allocate resources (in particular a MatrixEntry row)
+     *        for a cluster.  The matrix entry row will be large 
+     *        enough for TWO copies of the entries needed for the
+     *        cluster with this index ("just big enough").
+     * @param c the cluster index
+     */
     void allocateCluster(int c) {
         ASSERT(cluster_sorted_start[c] == nullptr);
-        size_t       q       = original_rank + original_rank-2;
+        size_t       q             = original_rank + original_rank - 2;
         //Cluster, c, 0 through n-1, has c previous clusters
         //When     c, n through q-1, is created, it'll have q-c
-        size_t       entries = (c<original_rank) ? c : q-c;
-        MatrixEntry* data    = new MatrixEntry[entries*2];
+        size_t       entries       = (c<original_rank) ? c : ( q - c );
+        MatrixEntry* data          = new MatrixEntry[entries*2];
         cluster_sorted_start[c]    = data;
         data                      += entries;
         cluster_sorted_stop[c]     = data;
@@ -411,6 +574,12 @@ protected:
         cluster_unsorted_stop[c]   = data;
     }
 
+    /**
+     * @brief  identify duplicate taxa.  Record equivalence classes
+     *         in the duplicate_taxa member.
+     * @param  matrix the input distance matrix (an n*n matrix, 
+     *         of inter-taxon distances, stored in row-major order).
+     */
     void identifyDuplicateTaxa(const double* matrix) {
         //1. Calculate row hashes
         #if USE_PROGRESS_DISPLAY
@@ -447,9 +616,23 @@ protected:
         #endif
     }
 
+    /**
+     * @brief  Identify, and cluster, taxa that are identical (or, at least,
+     *         have identical rows in the supplied distance matrix).
+     * @param  n          - the number of taxa
+     * @param  recalcTime - used to return how long it took to identify
+     *                      clusters of duplciate taxa (elapsed seconds).
+     * @param  mergeTime  - used to return how long it took to join the
+     *                      clusters of duplicate tax (elapsed seconds).
+     * @return intptr_t   - how many cluster joins were done (the number
+     *                      of taxa that were duplicates, minus the number
+     *                      of taxon equivalence classes).
+     * @note on entry, duplciate_taxa has already been set.
+     *       usually, in identifyDuplicateTaxa().
+     *       (yes, this member function is "episodic").
+     */
     intptr_t clusterDuplicateTaxa(int& n, double& recalcTime, 
                                   double& mergeTime) {
-        //writes: row_cluster                                      
         if (duplicate_taxa.empty()) {
             return 0;
         }
@@ -513,6 +696,14 @@ protected:
         return duplicate_merges;
     }
 
+    /**
+     * @brief Recalculate cluster totals, for clusters 0..next_cluster_num
+     *        and map current rows to in-play clusters (an in-play
+     *        cluster is one that has not yet been joined to make a
+     *        larger cluster).
+     * @param n - the number of clusters in play
+     * @param next_cluster_num - the next unused cluster number 
+     */
     void recalculateTotals(int n, int next_cluster_num) {
         //writes: row_cluster and cluster_row
         double cutoff           = -infiniteDistance;
@@ -534,6 +725,7 @@ protected:
             }
         }
     }
+    //HIGH-TIDE
     void previewRows(int n, int q) {
         //reads: row_cluster
         //writes: row_rw_dist, row_best_distance, row_choice
