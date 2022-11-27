@@ -725,11 +725,25 @@ protected:
             }
         }
     }
-    //HIGH-TIDE
+    /**
+     * @brief For each cluster, y, that is currently in play, find the
+     *        first MatrixEntry<T>, in that cluster's block of 
+     *        matrix entries for LOWER numbered clusters (which is
+     *        sorted by raw distance from y), that refers to a
+     *        cluster that is till in play (if any!).
+     * @param n - the number of clusters currently in play
+     * @param q - the number of nodes there will be, in a
+     *            complete unrooted tree:(n0-1)*2, where n0 is
+     *            the number of rows in the input distance matrix
+     * @note  reads:  row_cluster
+     * @note  writes: row_raw_dist, row_best_distance, row_choice
+     * @note  doesn't usually update cluster_sorted_start[y],
+     *        but will deallocate the memory allocated for the 
+     *        cluster, if its block of matrix entries no longer
+     *        has any distances to (lower-numbered) in-play clusters
+     *        in it. 
+     */
     void previewRows(int n, int q) {
-        //reads: row_cluster
-        //writes: row_rw_dist, row_best_distance, row_choice
-
         global_best_dist = infiniteDistance;
         FNJ_TRACE("\nPreview for n=" << n << "\n");
 
@@ -742,8 +756,8 @@ protected:
         #pragma omp parallel for
         #endif
         #endif
-        for (int r = 0; r < n; ++r ) {
-            int  y     = row_cluster[r];
+        for (int r = 0; r < n; ++r ) /* r is current row number */ {
+            int  y     = row_cluster[r]; //y is cluster number
             auto scan  = cluster_sorted_start[y]; 
             auto stop  = cluster_sorted_stop[y];
             bool found = false;
@@ -785,6 +799,25 @@ protected:
         }
     }
 
+    /**
+     * @brief For each row, r, and corresponding in-play cluster, y,
+     *        find the best choice (of MatrixEntry) for cluster y 
+     *        (and so, for row r), and also the raw, and adjusted 
+     *        distance, of that best choice.
+     * @param n - the number of clusters currently in play
+     * @param q - the number of nodes there will be, in a
+     *            complete unrooted tree:(n0-1)*2, where n0 is
+     *            the number of rows in the input distance matrix
+     * @note  reads:   rows_by_dist (ordered by increasing preview 
+     *                               distance, to get r)
+     *                 row_cluster  (indexed by r to get y)
+     * @note  updates: row_raw_dist, row_best_dist, row_choice 
+     *                 (all of these vectors are indexed by r)
+     * @note  if _OPENMP is defined, parallelizes over rows.
+     *        each thread, (i) of the (step) running threads looks
+     *        at those rows that correspond to entries that are
+     *        (i) modulo (step) in rows_by_dist.
+     */
     void findPreferredPartners(int n, int q) {
         //reads:   row_cluster
         //updates: row_raw_dist, row_best_dist, row_choice
@@ -814,19 +847,47 @@ protected:
         }
     }
 
+    /**
+     * @brief Find an ordering of rows, ordering each row (r), according to 
+     *        the (Dcj - Rc - Rj) "cooked" distance, to the first entry 
+     *        (for cluster x) from the cluster (y) mapped to row r.
+     *        (Here: Dcj is the distance between clusters c and j, Rc
+     *         is the scaled row total, sum divided by (n-2), for cluster c,
+     *         and Rj the same for cluster j).
+     * @param n            - the number of clsuters currently inplay
+     * @param rows_by_dist - a vector of pair<T,int>, where first is the
+     *                       adjusted distance, and second the row number
+     * @note  reads: row_best_dist.
+     * @note  Sorts using std::sort().  Possibly for VERY large inputs, 
+     *        it might be worth sorting with a parallel sorting 
+     *        implementation.  But I haven't done that. -James B.
+     */
     void chooseRowSearchOrder(int n, std::vector< std::pair<T, int> >& rows_by_dist) {
-        //
-        //Find an ordering of rows, ordering each row (r),
-        //according to the (Dcj - Rc - Rj) "cooked" distance, 
-        //to the first entry (for cluster x) from the cluster (y)
-        //mapped to row r.
-        //
         for (int r = 0; r < n; ++r ) {
             rows_by_dist.emplace_back(row_best_dist[r], r);
         }
         std::sort(rows_by_dist.begin(), rows_by_dist.end());
     }
 
+    /**
+    * @brief For a given cluster, y, corresponding to a specified row, r,
+    *        of the working distance matrix, find the MatrixEntry,
+    *        and corresponding distance, for the (earlier-numbered)
+    *        cluster, x, still in play, that has the lowest adjusted 
+    *        distance to cluster y.
+    * @param r - row number (of the cluster, in the working distance matrix)
+    * @param y - cluster number
+    * @note  reads: row_choice, row_best_dist.
+    * @note  writes:row_best_dist and row_choice.
+    * @note  Rather than searching (and comparing distances, until it
+    *        is no longer possible, for a MatrixEntry<T> in y's block of
+    *        lower-numbered MatrixEntry<T>, to be for a cluster, x, 
+    *        such that the adjusted distance to x, from y, will be the 
+    *        lowest), using the current cutoff, this code performs a 
+    *        binary search, for an entry beyond the initial cutoff.
+    *        The idea is to spend log_2(CX(y)) unpredictable dstiance 
+    *        comparisons before the scanning loop, to save CX(y) in it.
+    */
     virtual bool findPartnerForOneCluster(int r /*row*/, int y /*cluster*/) {
         int best_x         = row_choice[r];    //other cluster
         T   best_hc_dist   = row_best_dist[r]  + cluster_total_scaled[y];
@@ -868,6 +929,21 @@ protected:
         return found;
     }
 
+    /**
+     * @brief  Find, in a block of contiguous MatrixEntry<T> rows,
+     *         indicated by (start, stop), sorted by distance, 
+     *         the first entry that has a distance greater than (dist),
+     *         and return a pointer to it. If there ISN'T one, 
+     *         return stop.
+     * @param  start - first MatrixEntry<T> to look at
+     * @param  stop  - one more than the last MatrixEntry<T> to look at
+     *                 (or, if you prefer, the first one, after than,
+     *                 NOT to look at)
+     * @param  dist  - the threshold distance, we are looking to find
+     *                 a "boundary" element for.
+     * @return MatrixEntry* the first such element. Or (stop) if there are
+     *         no elements with a distance greater than (dist).
+     */
     MatrixEntry* findFirstGreaterDistance(MatrixEntry* start, 
                                           MatrixEntry* stop, T dist) {
         while (start<stop) {
@@ -882,6 +958,20 @@ protected:
         return start;
     }
 
+    /**
+     * @brief  Given, row_choice and row_best_dist have been set,
+     *         (indicating for each row, r, and corresponding cluster, y,
+     *          which lower-numbered cluster x, if any, has the minimal
+     *          adjusted distance to y), find the best row.
+     * @param  n - the number of clusters currently in play
+     * @param  q - a dummy cluster number (indicating no cluster!) 
+     *           - in practice, (n0-1)*2 where n0 is the number of
+     *             rows that there were in the initial distance matrix.
+     * @return int - the row, r, which corresponds to the cluster, y, 
+     *               which has the mimimum minimum distance to a 
+     *               lower-numbered in-play cluster, x.
+     * @note   reads:  row_choice, row_best_dist
+     */
     int chooseBestRow(int n, int q) {
         //reads: row_best_dist, row_choice
         int best_row  = q;
@@ -909,6 +999,19 @@ protected:
         return best_row;
     }
 
+    /**
+     * @brief merge two existing clusters, into a new cluster
+     * @param cluster_X - the first existing cluster
+     * @param cluster_Y - the second
+     * @param cluster_U - the new cluster to be built by joining
+     *                    clusters cluster_X and cluster_Y
+     * @param Dxy       - the raw (not the adjusted) distance between
+     *                    the two existing clusters
+     * @param n         - the number of clusters still in play
+     * @param is_rooted - indicates whether the last cluster is to have
+     *                    degree 2 (true), or degree 3 (false).
+     * @note  it is assumed 0 <= cluster_X < cluster_Y < cluster_U.
+     */
     void mergeClusters(int cluster_X, int cluster_Y, 
                        int cluster_U, T Dxy, int n,
                        bool is_rooted) {
@@ -975,6 +1078,11 @@ protected:
         markClusterAsUsedUp(cluster_Y);
     }
 
+    /**
+    * @brief mark a cluster as no longer being in play (because it has
+    *        been merged into another cluster).
+    * @param c - the cluster number
+    */
     void markClusterAsUsedUp(int c) {
         cluster_in_play[c]       = 0;
         cluster_total[c]         = -infiniteDistance;
@@ -983,6 +1091,11 @@ protected:
         deallocateCluster(c);
     }
 
+    /**
+    * @brief Free up the memory allocated on behalf of a cluser that is
+    *        no longer in play.
+    * @param c - the cluster number.
+    */
     void deallocateCluster(int c) {
         delete [] cluster_sorted_start[c];
         cluster_sorted_start[c]   = nullptr;
@@ -991,6 +1104,29 @@ protected:
         cluster_unsorted_stop[c]  = nullptr;
     }
 
+    /**
+    * @brief Get the raw distances, from cluster c, to lower-numbered clusters
+    * @param c - cluster number
+    * @param u -
+    * @param distances - a vector, of distances (i.e. a vector of T),
+    *                    initialized on entry, to infiniteDistance, 
+    *                    of size at least n (where n is the number of
+    *                    clusters currently in play)).  
+    *                    On exit, distance[b] will
+    *                    be set to the raw distance between b and c, if
+    *                    and only if b is currently in play.
+    * @note  The sorted distances, from cluster cluster_X, and from 
+    *        cluster cluster_Y, are likely to be in different orders.
+    *        That is why unsorted distances are used, by getDistances();
+    *        (despite the name, those are already in cluster-number order).
+    * @note  For clusters b<c, distances can be read from cluster c's
+    *        unsorted distances row. But for c<b clusters, distances have
+    *        to be read from the index c entry in the unsorted distances
+    *        row for cluster b.
+    *        This is the whole reason that unsorted distances have to be 
+    *        tracked in the first place!  So they can be looked up, here,
+    *        like this, via clusterDistance() - see below.  -James B.
+    */
     void getDistances(int c, int u, DistanceVector& distances) {
         //It's better to read from cluster_unsorted_start, 
         //since reading (and, more to the point, writing) 
@@ -1020,23 +1156,28 @@ protected:
         }
     }
 
+    /**
+     * @brief Finds:  record of raw distance, to a, from b, using an 
+     *                interpolation search in the "unsorted" entries 
+     *                for cluster b (which, it so happens, are written 
+     *                in cluster order).
+     * @param  a lower-numbered cluster's cluster index
+     * @param  b higher-numberd cluster's cluster index
+     * @return T distance type
+     * @note   Assumes that a is less than b (but doesn't check that is!)
+     * @note   Why:   Theoretically, an interpolation search over x entries... 
+     *                has a running time proportional to 
+     *                the log of the log of x, where x = max(b-1, n0+n0-2-b),
+     *                where n0 is the number of rows there were in the input
+     *                distance matrix.
+     * @note   Since: An overhead of n*n*log(log(n)) reads isn't serious 
+     *                (since, we can hope that each of the ~ order n*n ~ 
+     *                interpolation searches only results in at most 
+     *                two or three cache misses).
+     * @note   A binary search would take time proportional to log(x)
+     *         which is more by a factor proportional to log(x).
+     */
     T clusterDistance(int a, int b) {
-        //Assumes:  a is less than b
-        //Finds:    record of raw distance, to a, from b,
-        //          using an interpolation search in the
-        //          "unsorted" entries for cluster b
-        //          (which, it so happens, are written 
-        //           in cluster order).
-        //Why?:     Theoretically, an interpolation search 
-        //          over x entries... has a running time 
-        //          proportional to the log of the log of x,
-        //          where x = max(b-1, n+n-2-b).
-        //Since:    An overhead of n*n*log(log(n)) reads 
-        //          isn't serious (since, we can hope that
-        //          each of the ~ order n*n ~ interpolation 
-        //          searches only results in one or two cache 
-        //          misses).
-        //         
         auto start = cluster_unsorted_start[b];
         int  count = cluster_unsorted_stop[b] - start;
         int  low   = 0;
@@ -1070,6 +1211,20 @@ protected:
         return infiniteDistance;
     }
 
+    /**
+     * @brief For each cluster that is currently in play,
+     *        examine the block of distance-sorted MatrixEntry<T>,
+     *        and "shrink" the block (by adjusting the boundary
+     *        from the left, to point to the first entry for an
+     *        "in-play" cluster, shuffling "live" entries back 
+     *        toward the left of the block, and then adjusting
+     *        the boundary on the right, to point after the last
+     *        live entry.
+     * @param used_cluster_count 
+     * @note  reads:  cluster_in_play
+     *        reads:  cluster_sorted_start, cluster_sorted_stop
+     * @note  writes: cluster_sorted_start, cluster_sorted_stop
+     */
     void removeOutOfPlayClusters(int used_cluster_count) {
         #ifdef _OPENMP
         #pragma omp parallel for
@@ -1094,6 +1249,24 @@ protected:
             cluster_unsorted_stop[c] = w;
         }
     }
+
+    /**
+     * @brief Log a summary of what has been done, neighbour joining 
+     *        a phylogenetic tree, for the taxa, given the input distance
+     *        matrix.  Most of the information here is about how much
+     *        time was spent on various activities.
+     * @param duplicate_merges - how many merges there were of clusters
+     *                           containing duplicate taxa
+     * @param purgeTime        - total time spent removing "out-of-play"
+     *                           MatrixEntry<T> elements from the sorted
+     *                           by distance blocks, for "in-play" clusters.
+     * @param recalcTime       - time spent recalculating distances
+     * @param previewTime      - time spent getting "previews" (first live
+     *                           cluster in each cluster's sorted-by-distance
+     *                           MatrixEntry<T> block).
+     * @param mergeTime        - time spent merging clusters
+     * @note  All times are in seconds.
+     */
     void reportConstructionDone(intptr_t duplicate_merges, 
                                 double purgeTime,
                                 double recalcTime, 
@@ -1112,6 +1285,16 @@ protected:
     }
 }; //FancyNJMatrix template class
 
+/**
+ * @brief Vectorized version of FancyNJMatrix
+ * @note  The only method that is vectorized is findPartnerForOneCluster().
+ *        (Since that's the one that "matters" most, by far). Between
+ *        n0*n0 and n0^3 (~ probably about no~2.5) operations on T.
+ * @note  I didn't judge it worth vectorizing getDistances(), as that
+ *        only does O(n0*n0) operations on T. -James B.
+ * @note  Nor did I judge it worth vectorizing chooseBestRow(). 
+ *        For the same reason. -James B.
+ */
 #if USE_VECTORCLASS_LIBRARY
 template <class T=NJFloat, class V=FloatVector, class VB=FloatBoolVector> 
 class VectorizedFancyNJMatrix: public FancyNJMatrix<T> {
