@@ -28,15 +28,27 @@
 #define  HAMMING_VECTOR (0)
 #endif
 
-//
-//Summary: Determine the hamming distance between two sequences.
-//         (unknown is a wildcard character that will match any character)
-//Note 1:  L is a template parameter so that, when the state range
-//         is 255 or less, it can be char, or if 65535 or less, short.
-//Note 2:  F is a template parameter so that, when the maximum
-//         frequency is 255 or less, it could be unsigned char,
-//         or if 65535 or less, short.
-//
+/**
+ * @brief  Determine the hamming distance between two sequences.
+ * @tparam L the type representing a state of a pattern
+ *           (when the state range is 255 or less, it can be char, 
+ *            or if 65535 or less, short.)
+ * @tparam F is the type of the elements in the vector of pattern frequencies
+ *           (if all pattern frequencies were 255 or less, it could be 
+ *            unsigned char, or if 65535 or less, short).
+ * @param  unknown   - a wildcard character that will match any character
+ * @param  sequenceA - pointer to the pattern states in the first sequence
+ * @param  sequenceB - pointer to the pattern states in the second sequence
+ * @param  seqLen    - length of the sequence
+ * @param  frequencyVector     - pointer to the frequencies of the patterns
+ * @param  frequencyOfUnknowns - will be set to the sum of the frequencies,
+ *                               for the patterns for which the pattern
+ *                               state was unknown, in either of both of the
+ *                               sequences.
+ * @return double - the sum of the frequencies, for the patterns that
+ *         differ, between the sequences, where neither of the patterns
+ *         has an unknown state.
+ */
 template <class L, class F> inline double hammingDistance
         ( L unknown, const L* sequenceA, const L* sequenceB
          , int seqLen, const F* frequencyVector, double& frequencyOfUnknowns ) {
@@ -53,12 +65,23 @@ template <class L, class F> inline double hammingDistance
     return distance;
 }
 
-//
-//The proper name (for what this function does) is perhaps: 
-//sumOfFrequenciesOfCharactersGreaterThanOrEqualTo
-//But for now, this function is named after what
-//it is used for.
-//
+/**
+ * @brief  Find the sum of the pattern frequencies, corresponding to the
+ *         the pattern states, in a sequence, that are >= some boundary
+ *         state.
+ * @tparam L - the type of the pattern states
+ * @tparam F - the type of the pattern frequencies
+ * @param  boundaryChar    - the boundary state
+ * @param  sequence        - the sequence (not of site, but of pattern states)
+ * @param  seqLen          - the length of the sequence (number of patterns)
+ * @param  frequencyVector - the frequencies, corresponding to the patterns
+ *                           whose states appear in the sequence.
+ * @return size_t 
+ * @note   The proper name (for what this function does) is perhaps: 
+ *         sumOfFrequenciesOfCharactersGreaterThanOrEqualTo().
+ *         But for now, this function is named after what
+ *         it is used for.
+ */
 template <class L, class F> inline size_t sumForUnknownCharacters
     (L boundaryChar, const L* sequence, int seqLen, const F* frequencyVector) {
     size_t sum = 0;
@@ -132,10 +155,22 @@ inline double hammingDistance
 }
 #endif
 
+/**
+ * @brief  Determine the Hamming distance, the count of sites with disagreeing 
+ *         characters, between two sequences of sites by comparing them, 
+ *         site by site, treating differences as 1, except when one - or the 
+ *         other - of the sequences has an unknown state at the site, 
+ *         in which case the sites are counted as being in agreement.
+ * @param  unknown   - the character representing a site of "unknown" character
+ * @param  sequenceA - the first sequence
+ * @param  sequenceB - the second sequence
+ * @param  seqLen    - the length of *both* sequences
+ * @return size_t    - the number of differences
+ */
 inline size_t conventionalHammingDistance(char unknown,
-                                            const char* sequenceA,
-                                            const char* sequenceB,
-                                            size_t seqLen ) {
+                                          const char* sequenceA,
+                                          const char* sequenceB,
+                                          size_t seqLen ) {
     size_t distance = 0;
     const char* stopSequenceA = sequenceA+seqLen;
     for (; sequenceA < stopSequenceA; ++sequenceA, ++sequenceB) {
@@ -152,6 +187,14 @@ inline size_t conventionalHammingDistance(char unknown,
 #   define _mm_popcnt_u64 __popcnt64
 #endif
 
+/**
+ * @brief Count the number of bits that are set in the bitwise or of two
+ *        blocks (of uint64_t bitfields), of the same size.
+ * @param a - the first block
+ * @param b - the second block
+ * @param count - the number of uint64_t bitfields (in both blocks)
+ *        the number of bits in the blocks will be 64x this.
+ */
 inline uint64_t conventionalCountBitsSetInEither(uint64_t* a, uint64_t* b,
                                                size_t count /*in uint64_t*/) {
     uint64_t bits_set = 1;
@@ -169,10 +212,18 @@ inline uint64_t conventionalCountBitsSetInEither(uint64_t* a, uint64_t* b,
 }
 
 #if (!HAMMING_VECTOR)
+/**
+ * @brief version of vectorHammingDistance to use if hamming distance
+ *        functions are NOT to be vectorized.
+ */
 inline uint64_t vectorHammingDistance(char unknown, const char* sequenceA,
                                       const char* sequenceB, size_t seqLen ) {
     return conventionalHammingDistance(unknown, sequenceA, sequenceB, seqLen);
 }
+/**
+ * @brief version of countBitsSetInEither to use if hamming distance
+ *        functions are NOT to be vectorized.
+ */
 inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b, size_t count) {
     return conventionalCountBitsSetInEither(a, b, count);
 }
@@ -184,16 +235,33 @@ inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b, size_t count) {
     #define ALIGN_32(x) x __attribute__((aligned(32)))
 #endif
 
-
 //W is the number of bytes in a CV (or CBV)
+/**
+ * @brief 
+ * @tparam DV  - distance vector type  (of W/8 uint64_t)
+ * @tparam CV  - character vector type (of W characters)
+ * @tparam CBV - boolean vector type   (same rank as CV)
+ * @tparam W   - the number of characters per instance of CV
+ * @param  unknown   - the character that indicates a site is of unknown character
+ * @param  sequenceA - pointer to the start of the first sequence
+ *                     (one character per site).
+ * @param  sequenceB - pointer to the start of the second sequence
+ * @param  seqLen    - the number of sites/characters in each of the sequences.
+ * @return uint64_t  - The hamming distance
+ * @note   it is assumed that the binary representation, in a CBV, for true,
+ *         is 0xFF. So 8 bits will be set, in each uint_64 in the CBV, for each
+ *         of the W/8 uint64_t's in the CBV.
+ * @note   runs sequentially.
+ *         (even when the _OPENMP symbol is defined and non-zero, it is supposed 
+ *          that each thread is calculating hamming distances, for different 
+ *          sequences, so comparisons of individual sequences might as well
+ *          be single-threaded).
+ */
 template <class DV, class CV, class CBV, int W /*power of 2*/>
 inline uint64_t vectorHammingDistanceTemplate(char unknown,
                               const char* sequenceA,
                               const char* sequenceB,
                               size_t seqLen ) {
-    //Note: this is designed to run sequential (it is supposed that
-    //each thread is calculating hamming distances for different
-    //sequences).
     size_t   blockStop        = 0;
     DV       distance_vector  = 0;
     if (W <= seqLen) {
@@ -205,7 +273,6 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
         ALIGN_32(uint64_t res[W/8]);
         DV distance_bump_vector(0);
         for ( size_t i=0; i<blockStop; i+=W) {
-            
             //Compare W characters at a time
             blockA.load(sequenceA+i);
             blockB.load(sequenceB+i);
@@ -255,11 +322,19 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
     return distance;
 }
 
+/**
+ * @brief  Count the number of bits set in the bitwise-or of two blocks
+ * @tparam V a vector type (of uint64_t)
+ * @tparam W the number of uint64_t's in a V.
+ * @param  a      - the first block
+ * @param  b     - the second block
+ * @param  count - the number of uint64_t bitfields (in both blocks)
+ *                 the number of bits in the blocks will be 64x this.
+ * @return uint64_t - the number of bits set in the bitwise-or of the blocks.
+ */
 template <class V, int W>
-//W is the number of uint64_t's in a V.
 uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
                                       intptr_t count /* in instances of uint64_t */) {
-    //Assumes: W divides count
     V count_vector  = 0;
     V aData = 0;
     V bData = 0;
@@ -323,6 +398,28 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
     }
 #endif
 
+/**
+ * @brief  Given a sequence, that represents distinct patterns (for each
+ *         pattern there is a character, the one found in this sequence, 
+ *         and a frequency: the count of sites, in the alignment that
+ *         is being processed - which we can't see! - for which the
+ *         pattern is found, or repeats).  
+ * @param  boundaryChar - characters equal to, or greater than this,
+ *                        are counted as unknown.
+ * @param  sequence     - pointer to the characters for the patterns
+ * @param  seqLen       - the number of distinct patterns (of characters
+ *                        in a site, over all of the sequences)
+ * @param  frequencyVector - for each pattern, the number of sites that
+ *                           match that pattern.
+ * @return size_t - the sum, of the frequencyVector[i]'s for each 
+ *         pattern, for which sequence[i], the character at site i,
+ *         is equal to or greater than boundaryChar.
+ * @note   When the number of sequences in an alignment is relatively low, 
+ *         there can be only a few distinct patterns of sites, each of which
+ *         (we may hope) accounts for a lot of sites.  When the number of
+ *         sequences in the alignment is large, however, there might be 
+ *         relatively many distinct patterns.
+ */
 inline size_t sumForUnknownCharacters
     ( char boundaryChar, const char* sequence, intptr_t seqLen, const int* frequencyVector) {
     size_t sum = 0;
@@ -358,6 +455,18 @@ inline size_t sumForUnknownCharacters
 
 #endif
 
+/**
+ * @brief  Count the number of bits set in a block of (count) 64-bit
+ *         bit-fields, pointed to by a unit64_t* (a pointer to the first
+ *         unsigned 64-bit integer)
+ * @param  a     - the block
+ * @param  count - the number of uint64_t bit-fields in the block
+ * @return uint64_t - the number of bits set
+ * @note   This is rather inefficient! It returns the number of bits
+ *         set in the bit-wise or of the block, starting at a, with itself.
+ *         It works this way because I was in a bit of a hurry when I
+ *         wrote it.
+ */
 inline uint64_t countBitsSetIn(uint64_t* a, size_t count) {
     return countBitsSetInEither(a,a,count);
 }
