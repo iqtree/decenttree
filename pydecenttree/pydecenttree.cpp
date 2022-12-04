@@ -1,7 +1,30 @@
+// Python Wrapper for decentTree's distance matrix phylogenetic inference
+// implementations.
+//
+//  Copyright (C) 2021, James Barbetti.
+//
+//  LICENSE:
+//* This program is free software; you can redistribute it and/or modify
+//* it under the terms of the GNU General Public License as published by
+//* the Free Software Foundation; either version 2 of the License, or
+//* (at your option) any later version.
+//*
+//* This program is distributed in the hope that it will be useful,
+//* but WITHOUT ANY WARRANTY; without even the implied warranty of
+//* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+//* GNU General Public License for more details.
+//*
+//* You should have received a copy of the GNU General Public License
+//* along with this program; if not, write to the
+//* Free Software Foundation, Inc.,
+//* 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+//
+//
 //
 //On Windows it might just be <Python.h>.  But on OS it's 
-//a framework. The usual way around this is to #include <Python/Python.h>
-//on Mac OS.  But I've hacked the -I parameter in CMakeLists.txt instead.
+//a framework. The usual way around this is to 
+//#include <Python/Python.h> on Mac OS.  But I've hacked 
+//the -I parameter in CMakeLists.txt instead.
 //-James B. 10-Jul-2022.
 //
 #define PY3K
@@ -16,11 +39,20 @@
 
 #include <starttree.h>
 
+/**
+ * @brief A scoped reference to PyObject pointer, that will have
+ *        its reference count decremented, via Py_DECREF().
+ */
 class ScopedPyObjectPtr {
 public:
     PyObject *ptr;
     ScopedPyObjectPtr(): ptr(nullptr) {}
-    ScopedPyObjectPtr(PyObject* rhs) : ptr(rhs) {}
+    explicit ScopedPyObjectPtr(PyObject* rhs) : ptr(rhs) {}
+    ScopedPyObjectPtr(const ScopedPyObjectPtr& rhs): ptr(ptr) {
+        if (ptr!=nullptr) {
+            Py_INCREF(ptr);
+        }
+    }
     ~ScopedPyObjectPtr() {
         if (ptr!=nullptr) {
             Py_DECREF(ptr);
@@ -33,6 +65,19 @@ public:
     bool      isNull()    const { return ptr==nullptr; }
 };
 
+/**
+ * @brief  Append a string representation of a python object, to a StrVector.
+ * @param  append_me - the python object
+ * @param  to_me     - the StrVector (vector of strings based on std::vector)
+ * @return true  - if the object had a string represenetation that could
+ *                 be converted to UTF-8.
+ * @return false - if the object didn't have a string representation,
+ *                 or if the conversion to UTF-8 failed.
+ * @note   I don't even know what this does if append_me is null.
+ *         Please don't pass that! -James B. 
+ * @note   The UTF-8 string, returned by PyUnicode_AsUTF8AndSize(),
+ *         is automatically cleaned up when str is.
+ */
 bool appendStrVector(PyObject* append_me, StrVector& to_me) {
     #if (PY_MAJOR_VERSION >= 3)
         ScopedPyObjectPtr str ( PyObject_Str(append_me) );
@@ -51,6 +96,31 @@ bool appendStrVector(PyObject* append_me, StrVector& to_me) {
     return (utf8!=nullptr);
 }
 
+/**
+ * @brief  Indicates whether an object parameter (sequence_arg)
+ *         can be treated as a StrVector; and - if it can - loads its
+ *         content into a StrVector instance supplied by reference.
+ * @param  vector_name  - the formal name of the parameter (this is included in
+ *                        error messages appended to (complaint)),
+ *                        if any there are.
+ * @param  sequence_arg - the python parameter (which will hopefully not be
+ *                        nullptr, and will hopefully be a sequence)
+ * @param  sequences    - reference to the StrVector to which (utf8) strings
+ *                        representing the items in the sequence are to be 
+ *                        appended.
+ * @param  complaint    - reference to a std::stringstream.  The stream will
+ *                        be appended if there is a problem (e.g. parameter
+ *                        not supplied, or is not a sequence)
+ * @return true  on success
+ * @return false on failure
+ * @note   different error message are written if the actual parameter
+ *         (sequence_arg) is null, or is not a sequence.  If there is an error
+ *         accessing an object in the sequence, or a problem determining its
+ *         utf8 string representation, an error message will be returned for
+ *         the FIRST such object, and the function will return, without 
+ *         attempting to add utf8 strings representing the remaining objects
+ *         in the sequence.
+ */
 bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
                       StrVector&  sequences,   std::stringstream& complaint) {
     if (sequence_arg==nullptr) {
@@ -73,10 +143,27 @@ bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
             complaint << vector_name << " could not convert item " << i << " to string.";
             return false;
         }
+        //Since PySequence_Fast_GET_ITEM returns a borrowed reference,
+        //there's no need to decrement the reference count of (item).
     }
     return true;
 }
 
+/**
+ * @brief  Given a python object (which had better not be null!), append
+ *         a double precision value, derived from the object, via 
+ *         PyFloat_AsDouble, to a DoubleVector.
+ * @param  append_me - the object, that is (or can be converted to) a double
+ *                     precision value.
+ * @param  to_me     - reference to the DoubleVector to append the double to
+ * @return true  - on success
+ * @return false - on failure (if one occurred, according to PyErr_Occurred())
+ * @note   This function isn't thread-safe, because PyErr_Occurred(),
+ *         which it relies upon, indicates whether the most recent Python 
+ *         function call errored.  If multiple threads are making Python
+ *         function calls, it could report errors when errors did not
+ *         occur (or report that errors did not occur when they did).
+ */
 bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
     double float_val = PyFloat_AsDouble(append_me);
     if (float_val==-1.0 && PyErr_Occurred()) {
@@ -86,15 +173,46 @@ bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
     return true;
 }
 
+/**
+ * @brief  Append double-precision values, supplied via a sequence parameter,
+ *         to a DoubleVector (a vector of doubles).
+ * @param  row_vector_name - the name of the formal parameter (to be quoted
+ *                           in error messages, appended to (complaint), if
+ *                           an error is encountered)
+ * @param  seq_for_row     - the python object (which we hope will be non-null,
+ *                           and hope will be a sequence).
+ * @param  doubles         - reference to the DoubleVector to load up
+ * @param  row_width_here  - to be used to return the number of items
+ *                           in the sequence.  On error, this will be the
+ *                           number of items read from the row. It is 
+ *                           ADDED to, not SET (so usually, the caller 
+ *                           should set it to zero before calling this fn).
+ * @param  complaint       - reference to a std::stringstream.  The stream will
+ *                           be appended if there is a problem (e.g. parameter
+ *                           not supplied, or is not a sequence)
+ * @return true  - on success
+ * @return false - on failure
+ * @note   it is assumed that the caller owns seq_for_row and controls its
+ *         reference count (or in Python terms, it is assumed that seq_for_row
+ *         is a borrowed reference).
+ * @note   it is assumed that row_width_here has already been intialized
+ *         (probably to zero).
+ * @note   Although in practice, when this function is called, it is always
+ *         passed a non-null python object that is a sequence, it does NOT
+ *         assume either that seq_for_row is null, OR that it is a sequence.
+ */
 bool appendDoublesToVector(const std::string& row_vector_name, PyObject* seq_for_row, 
                            DoubleVector& doubles, size_t& row_width_here, 
                            std::stringstream& complaint ) {
-    //Assumptions: 1. seq_for_row is a sequence (it always is, when called
-    //                from isVectorOfDouble)
-    //             2. Caller owns req_for_row and controls its reference count.
-    //             3. row_width_here has already been initialized (and will
-    //                be incremented, for each item read from seq_for_row)
-    //
+    if (sequence_arg==nullptr) {
+        complaint << row_vector_name << " was not supplied.";
+        return false;
+    }
+    ScopedPyObjectPtr seq = PySequence_List(sequence_arg);
+    if (seq==nullptr) {
+        complaint << row_vector_name << " is not a sequence.";
+        return false;
+    }
     int number_of_items = PySequence_Fast_GET_SIZE(seq_for_row);
     for (int i=0; i<number_of_items; ++i) {
         PyObject* item = PySequence_Fast_GET_ITEM(seq_for_row, i);
@@ -116,6 +234,35 @@ bool appendDoublesToVector(const std::string& row_vector_name, PyObject* seq_for
     return true;
 }
 
+/**
+ * @brief  Reads doubles (either as "flat" sequence, or as a sequence of
+ *         row sequences, such that each row sequence has the same number
+ *         of doubles in it, into a vector).
+ * @param  vector_name   - the name of the formal parameter (const char*)
+ * @param  vector_arg    - the argument (a python object)
+ * @param  doubles       - reference to the DoubleVector to which to append
+ *                         the doubles, read from the "flat" or "row/major"
+ *                         sequence, passed in via (vector_arg).
+ * @param  element_data  - will be set to the start of the data allocated
+ *                         for the DoubleVector (only on success), or to 
+ *                         nullptr (only on failure).
+ * @param  element_count - will be set to the size of the data in DoubleVector
+ *                         (only on success), or to 0 (only on failure).
+ * @param  complaint     - reference to a std::stringstream.  The stream will
+ *                         be appended if there is a problem (e.g. parameter
+ *                         not supplied, or is not a sequence)
+ * @return true  - on success
+ * @return false - on failure
+ * @note   if the parameter (vector_arg) is null (not supplied), an error 
+ *         saying so will be appended to (complaint) and false will be returned.  
+ * @note   if it's not a sequence, an error saying so will be appended to
+ *         (complaint) and false will be returned.
+ * @note   if it's a "flat" sequence it'll just be read.  if it's a "row-major"
+ *         sequence of row sequences, each of the rows will be read.
+ *         if any two rows have a different number of items, and error saying
+ *         so will be appended to (complaint) and false will be returned.
+ *         
+ */
 bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
                       DoubleVector& doubles,       const double*& element_data,
                       size_t&       element_count, std::stringstream& complaint) {
@@ -184,6 +331,12 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
     return true;
 }
 
+/**
+ * @brief  Returns true if a python object is a NumPy matrix.
+ * @param  arg - the python object (which may be nullptr)
+ * @return true - if the python object is non-null and is a NumPy matrix.
+ * @return false - if the python object is null, or is not a NumPy matrix.
+ */
 bool isMatrix(PyObject* arg) {
     #if (USE_NUMPY_HEADERS)
         return PyArray_API!=nullptr && PyArray_Check(arg)!=0;
@@ -192,6 +345,25 @@ bool isMatrix(PyObject* arg) {
     #endif
 }
 
+/**
+ * @brief  Attempts to read a matrix into a DoubleVector.
+ * @param  matrix_name     - the formal name of the matrix argument
+ *                           (this is used in error messages if there is
+ *                           a problem)
+ * @param  possible_matrix - the python parameter (which may be null,
+ *                           and need not be a NumPy matrix argument).)
+ * @param  element_data    - on success, pointer to the data in the matrix
+ * @param  element_count   - on success, count of items in the matrix
+ * @param  complaint       - reference to a std::stringstream. To be
+ *                           ppended if there is a problem (e.g. parameter
+ *                           not supplied, or is not a NumPy array)
+ * @return true  - on success
+ * @return false - on failure
+ * @note   always returns false if USE_NUMPY_HEADERS is not set
+ * @note   the data can only be accessed directly, without a conversion,
+ *         if the NumPy array has a type of NPY_DOUBLE. If it's any other type,
+ *         an error message is appended to (complaint) and false returned.
+ */
 bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix, 
                       const double*&     element_data, size_t&   element_count, 
                       std::stringstream& complaint) {            
@@ -228,6 +400,24 @@ bool isMatrixOfDouble(const char*        matrix_name,  PyObject* possible_matrix
     #endif
 }
 
+/**
+ * @brief  If _OPENMP is support, configure _OPENMP to use the specified
+ *         number of threads.
+ * @param  number_of_threads - The number of threads to use, or 0, if the
+ *                             OpenMP default number of threads (probably 
+ *                             the maximum possible number of threads) is
+ *                             to be used.
+ * @param  complaint         - A reference to a std:stringstream that will
+ *                             be appended if an error occurs. Maybe.
+ *                             Someday. If I ever decide to treat -ve 
+ *                             threadcount as an error condition.  -James B.
+ *
+ * @return true  - on success (at present, always succeds)
+ * @note   Does nothing and returns true if _OPENMP symbol is undefined or zero.
+ * @note   Negative thread counts are treated as equivalent to 0 ("all").
+ * @note   A thread count of 0 or less DOESN'T result in a call to determine
+ *         the OpenMP default.  The number of threads is merely left unchanged.
+ */
 bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
     #ifdef _OPENMP
         std::cout <<"OpenMP is defined\n";
@@ -247,6 +437,13 @@ bool obeyThreadCount(int number_of_threads, std::stringstream& complaint) {
     return true;
 }
 
+/**
+ * @brief  Convert a std::string into a string that can be returned to
+ *         Python.
+ * @param  convert_me - the string to convert
+ * @return PyObject* a new unicode reference to a Unicode object that
+ *         contains the (unicode) conversion of (convert_me).
+ */
 PyObject* StringToPythonString(const std::string& convert_me) {
     #if PY_MAJOR_VERSION >= 3
         return PyUnicode_FromString(convert_me.c_str());
@@ -255,6 +452,18 @@ PyObject* StringToPythonString(const std::string& convert_me) {
     #endif
 }
 
+/**
+ * @brief  Impleemnts PyDecentTree.constructTree
+ * @param  self     - the pydcenttree instance (a Python object)
+ * @param  args     - arguments (a Python object)
+ * @param  keywords - keywords (a Python object)
+ * @return PyObject* - on success, a python string representing the 
+ *                     newick-format representation of the phylogenetic tree, 
+ *                     inferred by the requested distance matrix algorithm,
+ *                     for the supplied sequence names and distance matrix.
+ *                   - on failure, nullptr (PyErr_SetString is called to
+ *                     report back to Python what the problem was).
+ */
 static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args, 
                                             PyObject* keywords)
 {
@@ -278,6 +487,7 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
                                         &distance_arg, &number_of_threads,
                                         &precision, &verbosity)) 
     {
+        //Parsing failure
         return nullptr;
     }        
     std::stringstream complaint;
@@ -358,6 +568,12 @@ static PyObject* pydecenttree_constructTree(PyObject* self, PyObject* args,
     }
 }
 
+/**
+ * @brief  Convert a StrVector into a Python List of strings
+ * @param  string_vector - the string vector whose strings are to be
+ *                         included in the Python List.
+ * @return PyObject* - a new reference to a Python List ojbect
+ */
 PyObject* StringVectorToPythonList(const StrVector& string_vector) {
     PyObject* list = PyList_New(string_vector.size());
     for (size_t i=0; i < string_vector.size() ; ++i ) {
@@ -375,6 +591,14 @@ PyObject* StringVectorToPythonList(const StrVector& string_vector) {
     return list;
 }
 
+/**
+ * @brief  Return a Python list containing the names of the available
+ *         algorithms.
+ * @param  self      - the pydcenttree instance (a Python object)
+ * @param  args      - arguments (a Python object)
+ * @param  keywords  - keywords (a Python object)
+ * @return PyObject* - a new Python list object (containing the names).
+ */
 static PyObject* pydecenttree_getAlgorithmNames
     ( PyObject* self, PyObject* args, PyObject* keywords ) {
     const char* argument_names[] = {
