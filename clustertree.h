@@ -295,13 +295,13 @@ public:
             for (size_t i=0; i+1<subtree_count; ++i) {
                 for (size_t j=i+1; j<subtree_count; ++j) {
                     //2b. for each leaf (a.first) from A
-                    for (LeafDistance& a: subtrees[i]) {
+                    for (const LeafDistance& a: subtrees[i]) {
                         auto row = matrix + a.first * rank;
                         //2c. for each leaf (b.first) from B
                         //    calculate error; difference between
                         //    distance(a.first) + distance(b.first)
                         //    and D[a.first * rank + b.first].
-                        for (LeafDistance& b: subtrees[j]) {
+                        for (const LeafDistance& b: subtrees[j]) {
                             double diff     = a.second + b.second
                                             - row[b.first];
                             sum_of_squares += (diff * diff);
@@ -364,7 +364,7 @@ public:
         } catch (const char *str) {
             std::cerr << "Writing newick file failed: " << str << std::endl;
             return false;
-        } catch (std::string &str) {
+        } catch (const std::string &str) {
             std::cerr << "Writing newick file failed: " << str << std::endl;
             return false;
         }
