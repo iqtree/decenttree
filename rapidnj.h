@@ -268,8 +268,6 @@ public:
             }
             double triangle = row_count * (row_count + 1.0) * 0.5;
             progress_display show_progress(triangle, taskName.c_str(), "", "");
-            #else
-            double show_progress = 0;
             #endif
             intptr_t degree_of_root = isRooted ? 2 : 3;
             while (degree_of_root<row_count) {
@@ -288,7 +286,9 @@ public:
                     }
                     nextPurge = (row_count + row_count)/3;
                 }
+                #if USE_PROGRESS_DISPLAY
                 show_progress+=row_count;
+                #endif
             }
             #if USE_PROGRESS_DISPLAY
             show_progress.done();
