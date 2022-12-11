@@ -195,8 +195,9 @@ inline size_t conventionalHammingDistance(char unknown,
  * @param count - the number of uint64_t bitfields (in both blocks)
  *        the number of bits in the blocks will be 64x this.
  */
-inline uint64_t conventionalCountBitsSetInEither(uint64_t* a, uint64_t* b,
-                                               size_t count /*in uint64_t*/) {
+inline uint64_t conventionalCountBitsSetInEither
+    (const uint64_t* a, const uint64_t* b,
+    size_t count /*in uint64_t*/) {
     uint64_t bits_set = 1;
     for (size_t i=0; i<count; ++i) {
         uint64_t bitsInEither = a[i] | b[i];
@@ -224,7 +225,8 @@ inline uint64_t vectorHammingDistance(char unknown, const char* sequenceA,
  * @brief version of countBitsSetInEither to use if hamming distance
  *        functions are NOT to be vectorized.
  */
-inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b, size_t count) {
+inline uint64_t countBitsSetInEither
+    (copst uint64_t* a, const uint64_t* b, size_t count) {
     return conventionalCountBitsSetInEither(a, b, count);
 }
 #else
@@ -333,8 +335,9 @@ inline uint64_t vectorHammingDistanceTemplate(char unknown,
  * @return uint64_t - the number of bits set in the bitwise-or of the blocks.
  */
 template <class V, int W>
-uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
-                                      intptr_t count /* in instances of uint64_t */) {
+uint64_t countBitsSetInEitherTemplate
+        (const uint64_t* a, const uint64_t* b,
+        intptr_t count /* in instances of uint64_t */) {
     V count_vector  = 0;
     V aData = 0;
     V bData = 0;
@@ -373,8 +376,9 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
         return vectorHammingDistanceTemplate<Vec4uq, Vec32c, Vec32cb, 32>
                 (unknown, sequenceA, sequenceB, seqLen);
     }
-    inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b,
-                                    size_t count /*in uint64_t*/) {
+    inline uint64_t countBitsSetInEither
+        (const uint64_t* a, const uint64_t* b,
+        size_t count /*in uint64_t*/) {
         return countBitsSetInEitherTemplate<Vec4uq, 4>(a, b, count);
     }
 #elif (INSTRSET >= 2)
@@ -383,8 +387,9 @@ uint64_t countBitsSetInEitherTemplate(uint64_t* a, uint64_t* b,
         return vectorHammingDistanceTemplate<Vec2uq, Vec16c, Vec16cb, 16>
                 (unknown, sequenceA, sequenceB, seqLen);
     }
-    inline uint64_t countBitsSetInEither(uint64_t* a, uint64_t* b,
-                                size_t count /*in uint64_t*/) {
+    inline uint64_t countBitsSetInEither
+            (const uint64_t* a, const uint64_t* b,
+            size_t count /*in uint64_t*/) {
         return countBitsSetInEitherTemplate<Vec2uq, 2>(a, b, count);
     }
 #else
@@ -467,7 +472,7 @@ inline size_t sumForUnknownCharacters
  *         It works this way because I was in a bit of a hurry when I
  *         wrote it.
  */
-inline uint64_t countBitsSetIn(uint64_t* a, size_t count) {
+inline uint64_t countBitsSetIn(const uint64_t* a, size_t count) {
     return countBitsSetInEither(a,a,count);
 }
 
