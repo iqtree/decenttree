@@ -38,10 +38,15 @@ public:
 class Sequences: public std::vector<Sequence> {
     bool numbered_names;
 public:
+    typedef std::vector<Sequence> super;
+    using super::size;
+
     Sequences() = delete;
     Sequences(const Sequences& rhs) = default;
     Sequences& operator=(const Sequences& rhs) = default;
     explicit Sequences(bool numbered_names);
+
+
     bool checkLastTwoSequenceLengths() const;
     size_t countOfProblematicSequences();
     std::string getFormattedName(size_t i);
