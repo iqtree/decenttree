@@ -237,9 +237,11 @@ bool writeMSAOutputFile(Sequences& sequences, const std::string& msaPath)
  *        to at least some other sequences cannot be calculated, because 
  *        they have no known characters in common), are detected by
  *        SequenceLoader::getDistanceBetweenSequences().
- * 
- * @param sequences 
- * @param m 
+ * @param sequences the sequences in the alignment.
+ * @param m         the FlatMatrix, containing the distances 
+ *                  between the sequences in the alignment,
+ *                  which will already have been calculated, by
+ *                  SequenceLoader::getDistanceBetweenSequences().
  */
 void removeProblematicSequences(Sequences& sequences,
                                 FlatMatrix& m) {
@@ -257,7 +259,8 @@ void removeProblematicSequences(Sequences& sequences,
     std::swap(sequences, old_sequences);
     std::swap(old_matrix, m);
     m.setSize(old_sequences.size() - count_problem_sequences);
-    size_t rNew = 0;
+    size_t rNew = 0; //index in sequences *in the output*.
+                     //r will be the index in old_sequences (the *input*).
     for (size_t r=0; r<old_sequences.size(); ++r) {
         if (!old_sequences[r].isProblematic()) {
             sequences.emplace_back(old_sequences[r].getName());
@@ -372,8 +375,7 @@ bool prepInput(const std::string& fastaFilePath,
 }
 
 /**
- * @brief restrict the range of an (in/out) thing to a range
- *        
+ * @brief    restrict the range of an (in/out) thing to a range
  * @tparam T the type (for which operator< and operator= must exist)
  * @param lo the minimum value for the range (if restrict_me is less than *lo*,
  *           restrict_me will be set to *lo*).
