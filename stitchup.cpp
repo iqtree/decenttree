@@ -386,7 +386,7 @@ template <class T=double> struct StitchupGraph {
         } catch (const char *str) {
             std::cerr << "Writing newick file failed: " << str << std::endl;
             return false;
-        } catch (std::string &str) {
+        } catch (const std::string &str) {
             std::cerr << "Writing newick file failed: " << str << std::endl;
             return false;
         }
@@ -488,7 +488,7 @@ public:
     virtual std::string getAlgorithmName() const {
         return "STITCHUP";
     }
-    virtual void addCluster(const std::string &name) {
+    virtual void addCluster(const std::string &name) override {
         graph.addLeaf(name);
     }
     virtual bool loadMatrixFromFile(const std::string &distanceMatrixFilePath) {
@@ -561,8 +561,6 @@ public:
         double row_count_triangle = 0.5*(double)row_count*(double)(row_count+1);
         const char* task_name = silent ? "" : "Assembling Stitch-up Graph";
         progress_display progress(row_count_triangle, task_name );
-        #else
-        double progress = 0.0;
         #endif
         for (intptr_t join = 0; join + 1 < row_count; ++join) {
             LengthSortedStitch<T> shortest;
@@ -584,8 +582,9 @@ public:
         graph.removeThroughThroughNodes();
         return true;
     }
-    virtual bool calculateRMSOfTMinusD(const double* matrix, 
-                                           intptr_t rank, double& rms) {
+
+     virtual bool calculateRMSOfTMinusD(const double* matrix, 
+                                        intptr_t rank, double& rms) {
         return false; //not supported  
     }
 };
