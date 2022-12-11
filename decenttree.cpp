@@ -100,15 +100,20 @@ void showBanner() {
 
 /** Show a summary of decentTree's command line syntax and options */
 void showUsage() {
-    std::cout << "Usage: decenttree (-fasta [fastapath] (-strip-name [stripped]) \n";
+    std::cout << "Usage: decenttree (-fasta [fastapath] | -phylip [phypath])\n";
+    std::cout << "       (-msa-out [msapath]) (-strip-name [stripped]) \n";
     std::cout << "       (-name-replace [reps]) (-truncate-name-at [chars])\n";
     std::cout << "       (-uncorrected) (-no-matrix) (-dist-out [distout]) (-out-format [shape])\n";
     std::cout << "       (-alphabet [states]) (-unknown [chars]) (-not-dna))\n";
     std::cout << "       -in [mldist] (-c [level]) (-f [prec]) -out [newick] -t [algorithm]\n";
     std::cout << "       (-nt [threads]) (-gz) (-no-banner) (-q)\n";
     std::cout << "Arguments in parentheses () are optional.\n";
-    std::cout << "[fastapath]  is the path of a .fasta format file specifying genetic sequences\n";
-    std::cout << "             (which may be in .gz format)\n";
+    std::cout << "[msapath]    is the path of a .msa format file, to which the input\n";
+    std::cout << "             alignment is to be written (in .msa format).\n";
+    std::cout << "[fastapath]  is the path of a .fasta format file specifying an alignment\n";
+    std::cout << "             of genetic sequences (file may be in .gz format)\n";
+    std::cout << "[phypath]    is the path of a .phy format file specifying an alignment\n";
+    std::cout << "             genetic sequences (file may be in .gz format)\n";
     std::cout << "             (by default, the character indicating an unknown state is 'N')\n";
     std::cout << "[stripped]   is a list of characters to replace in taxon names, e.g. \" /\"\n";
     std::cout << "[rep]        is a list of characters to replace them with e.g. \"_\"\n";
@@ -568,7 +573,7 @@ public:
         if (inputFilePath.empty() && fastaFilePath.empty() && phylipFilePath.empty()) {
             PROBLEM("Input (mldist) file should be specified via -in [filepath.mldist]");
             PROBLEM("or alignment (fasta) file may be specified via -fasta [filepath.fasta]");
-            PROBLEM("or alignment (phylip) file, via -phylip [filpeath.phy]");
+            PROBLEM("or alignment (phylip) file, via -phylip [filepath.phy]");
         }
         if (!fastaFilePath.empty() && !phylipFilePath.empty()) {
             PROBLEM("Cannot specify both a fast file path (with -fasta)");
