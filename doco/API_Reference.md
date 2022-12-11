@@ -16,9 +16,9 @@ All of these classes are in the StartTree namespace.
 | rapidnj.h | BoundingMatrix       | NJMatrix *or* BIONJMatrix, MirrorMergeSorter | Adds S and I matrices, for branch and bound, for NJ-R or BIONJ-R |
 | auctionmatrix.h | AuctionMatrix | BoundingMatrix, NJMatrix | Implementation of a reverse-auction distance matrix algorithm |
 | starttree.h | BuilderInterface  | std::string   | Interface that additional distance matrix algorithms must implement.  |
-| starttree.h, starttree.cpp  | Factory | BuilderInteface | Registry of distance matrix algorithms |
-| starttree.h, starttree.cpp  | Builder | BuilderInterface | Used to make an individual algorithm accessible via Factory::getBuilder |
-| starttree.h, starttree.cpp  | BenchmarkingTreeBuilder | BuilderInterface, Factory | Used for calling *all* for the algorithms registered via Factory::addBuilder |
+| starttree.h, starttree.cpp  | Registry | BuilderInteface | Registry of distance matrix algorithms |
+| starttree.h, starttree.cpp  | Builder | BuilderInterface | Used to make an individual algorithm accessible via Registry::getBuilder |
+| starttree.h, starttree.cpp  | BenchmarkingTreeBuilder | BuilderInterface, Registry | Used for calling *all* for the algorithms registered via Registry::addBuilder |
 
 <h2>Alignments</h2>
 
