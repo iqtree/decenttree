@@ -750,7 +750,7 @@ template <class M> bool loadDistanceMatrixInto
     } catch (const char *str) {
         std::cerr << "Load matrix failed: " << str << std::endl;
         return false;
-    } catch (std::string &str) {
+    } catch (const std::string &str) {
         std::cerr << "Load matrix failed: " << str << std::endl;
         return false;
     }
