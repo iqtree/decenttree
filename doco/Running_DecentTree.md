@@ -20,7 +20,7 @@
 | -uncorrected | | with -fasta, do not apply Jukes-Cantor distance correction to calculated distances |
 | -filter     | | with -fasta, Filter sequences that have zero distance |
 | -no-matrix  |  | with -fasta, save memory by *not* constructing the input matrix in memory  |
-| -msa-out    | msa output file path             | with -fasta, write alignment in msa format |
+| -msa-out    | msa output file path             | given -fasta or -phylip, rewrite alignment in msa format |
 | -dist-out   | distance matrix output file path | Use STDOUT to write it to standard output  |
 | -t          | algorithm name                   | Specify the algorithm to use to construct the tree (or none) |
 | -out        | newick output file path          | Use STDOUT to write it to standard output  |
