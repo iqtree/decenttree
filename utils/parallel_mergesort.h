@@ -10,8 +10,8 @@
 #include <algorithm>       //for std::sort
 #include "parallel_sort.h"
 
-template <class T> void merge_to(T *aStart, T* aStop,
-                                 T* bStart, T* bStop,
+template <class T> void merge_to(const T *aStart, const T* aStop,
+                                 const T* bStart, const T* bStop,
                                  T* dest) {
     //
     //Stably merges two non-overlapping, sorted ranges, 
