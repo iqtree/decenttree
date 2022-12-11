@@ -491,7 +491,7 @@ protected:
      */
     virtual void finishClustering() {
         ASSERT( row_count == 2 || row_count == 3);
-        std::vector<T> weights;
+        std::vector<T> weights(row_count);
         T denominator = (T)0.0;
         for (intptr_t i=0; i<row_count; ++i) {
             weights[i]   = (T)clusters[rowToCluster[i]].countOfExteriorNodes;
