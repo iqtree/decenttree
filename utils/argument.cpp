@@ -7,7 +7,6 @@
 //      +--SwitchArgument
 //
 //      ArgumentMap
-//      
 //
 //  Copyright (C) 2021, James Barbetti.
 //
