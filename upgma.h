@@ -198,7 +198,7 @@ public:
      * @note  does not write anything into clusters
      * @note  does not initialize rowMinima
      */
-    virtual void setSize(intptr_t rank) {
+    virtual void setSize(intptr_t rank) override {
         super::setSize(rank);
         rowToCluster.clear();
         for (intptr_t r=0; r<row_count; ++r) {
@@ -212,9 +212,10 @@ public:
      * @param name 
      * @note  This is normally called only for leaf taxa.
      */
-    virtual void addCluster(const std::string &name) {
+    virtual void addCluster(const std::string &name) override {
         clusters.addCluster(name);
     }
+
     /**
      * @brief  Load sequence names, and distances
      *         from the phylip-format distance matrix
@@ -229,6 +230,7 @@ public:
         calculateRowTotals();
         return rc;
     }
+
     /**
      * @brief  Load sequence names, and a distance matrix
      * @param  names  an n-item vector of leaf taxon names
@@ -253,6 +255,7 @@ public:
         calculateRowTotals();
         return true;
     }
+
     /**
      * @brief  Sets a flag that indicates whether we are building a
      *         subtree (where the "last" node of the tree has degree 2)
@@ -266,6 +269,7 @@ public:
         isRooted = rootIt;
         return true;
     }
+
     /**
      * @brief  Controls whether the children of the "last" node will
      *         be output as ( node1 node2 [node3] );
@@ -293,6 +297,7 @@ public:
      */
     virtual void prepareToConstructTree() {
     }
+
     /**
      * @brief  Construct a tree 
      * @return true - always
@@ -331,6 +336,7 @@ public:
         #endif
         return true;
     }
+
     /**
      * @brief  Called to indicate that output is to be compressed.
      *         This won't have any real effect unless compression
@@ -343,6 +349,7 @@ public:
         isOutputToBeZipped = zipIt;
         return true;
     }
+
     /**
      * @brief  Indicate whether the output file is, if it already exists,
      *         to be appended (true) or overwritten (false)
@@ -354,12 +361,14 @@ public:
         isOutputToBeAppended = appendIt;
         return true;
     }
+
     /**
      * @brief Called to suppress logging and displaying of progress.
      */
     virtual void beSilent() {
         silent = true;
     }
+
     /**
      * @brief  Writes a tree (or subtree) to an open file
      * @param  stream the file to write to
@@ -375,6 +384,7 @@ public:
     bool writeTreeToOpenFile(std::iostream& stream) const {
         return clusters.writeTreeToOpenFile(subtreeOnly, stream);
     }
+
     /**
      * @brief  Overwrites, or appends, the file with specified path.
      * @param  precision    how many digits of precision
@@ -392,6 +402,7 @@ public:
                                       treeFilePath, isOutputToBeAppended,
                                       subtreeOnly);
     }
+    
     /**
      * @brief  Calculate the root-mean-square of the matrix of 
      *         differences between the tree-distances (between taxa) 
@@ -428,12 +439,13 @@ protected:
         getRowMinima();
         best.value = infiniteDistance;
         for (intptr_t r=0; r<row_count; ++r) {
-            Position<T> & here = rowMinima[r];
+            const Position<T> & here = rowMinima[r];
             if (here.value < best.value && here.row != here.column) {
                 best = here;
             }
         }
     }
+
     /**
      * @brief  Determine, for each row, r, the cluster (in that row)
      *         that would be best used, and write information about
@@ -447,8 +459,7 @@ protected:
      * @note   The search is parallelized over the rows of the matrix
      *         (if _OPENMP is defined).
      */
-    virtual void getRowMinima() const
-    {
+    virtual void getRowMinima() const {
         rowMinima.resize(row_count);
         rowMinima[0].value = infiniteDistance;
         #ifdef _OPENMP
@@ -469,6 +480,7 @@ protected:
             rowMinima[row] = Position<T>(row, bestColumn, bestVrc, getImbalance(row, bestColumn));
         }
     }
+
     /**
      * @brief Link together the last two or three nodes to a "last" or "top"
      *        node of the tree. 
@@ -502,6 +514,7 @@ protected:
         }
         row_count = 0;
     }
+
     /**
      * @brief Join two clusters (corresponding with column a and
      *        row b in the matrix).
@@ -541,6 +554,7 @@ protected:
         rowToCluster[b] = rowToCluster[row_count-1];
         removeRowAndColumn(b);
     }
+
     /**
      * @brief Identify taxa that are effectively identical 
      *        (for the purposes of phylogenetic inference using a 
@@ -578,6 +592,7 @@ protected:
                       << " identical (or near-identical) taxa." << std::endl;
         }
     }
+
     /**
      * @brief Calculate hashes for all the rows in the distance matrix.
      *        Construct a vector of HashRow<T> (which is hash + row pointer)
@@ -683,6 +698,7 @@ protected:
         show_progress += work_done;
         return dupes_removed;
     }
+
     /**
      * @brief  Determine the imbalance (the absolute value of the 
      *         difference between the number of taxa in the cluster
@@ -722,13 +738,16 @@ protected:
 public:
     VectorizedUPGMA_Matrix() : super(), blockSize(VB().size()) {
     }
+
     virtual std::string getAlgorithmName() const override {
         return "Vectorized-" + super::getAlgorithmName();
     }
+
     virtual void calculateRowTotals() const override {
         size_t fluff = MATRIX_ALIGNMENT / sizeof(T);
         scratchColumnNumbers.resize(row_count + fluff, 0.0);
     }
+    
     virtual void getRowMinima() const override {
         T* nums = matrixAlign ( scratchColumnNumbers.data() );
         rowMinima.resize(row_count);
