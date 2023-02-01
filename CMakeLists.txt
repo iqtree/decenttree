@@ -66,7 +66,7 @@ project(decenttree)
 #                                   Ninja from the official website, and put that somewhere in your path.
 # Windows     VS Code   GCC 9.2     The compiler mightn't have libgomp.a, libgomp.dll.a, libgomp.spec files in
 #                                   its lib directory.  I found I could copy them across from the 12.2 compiler's
-#`                                  lib directory, to get a GCC 9.2 build to at least... link.  No idea if it runs!
+#                                   lib directory, to get a GCC 9.2 build to at least... link.  No idea if it runs!
 # Windows     VS COde   GCC 12.2    CMake isn't recognizing the compiler.  Tried installing a slightly later 
 #                                   CMake (3.24 rather than 3.23) but that didn't help.
 #                                   Building fails due to an error message which CMake/VS Code won't display.
@@ -89,6 +89,16 @@ project(decenttree)
 #                                   copy c:\msys64\usr\bin\msys-2.0.dll    c:\msys64\mingw64\bin
 #
 # Mac OS                Clang 13    Seems to be compiling with -std=c99 (or similar).
+# Mac OS                Clang 15    { "name": "Clang 15.0.2",
+#                                     "compilers": {
+#                                       "C": "/usr/local/opt/llvm/bin/clang",
+#                                       "CXX": "/usr/local/opt/llvm/bin/clang++"
+#                                       },
+#                                     "keep": true
+#                                   },
+#                                   ... had to be added to
+#                                   /Users/[me]/.local/share/CMakeTools/cmake-tools-kits.json
+#                                   ... because Microsoft Code wasn't finding the compiler.
 #
 #NOTE: Static linking with clang windows: make a symlink libgcc_eh.a to libgcc.a (administrator required
 # C:\TDM-GCC-64\lib\gcc\x86_64-w64-mingw32\5.1.0>mklink libgcc_eh.a libgcc.a
@@ -138,6 +148,19 @@ elseif (APPLE)
     message("Target OS           : Mac OS X")
     message("Target System Name    : ${CMAKE_HOST_SYSTEM_NAME}")
     message("Target System Version : ${CMAKE_HOST_SYSTEM_VERSION}")
+
+    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")        
+        if ("${CMAKE_CXX_COMPILER_VERSION}" VERSION_GREATER_EQUAL 13)
+            #This doesn't look to work very well.  I'm definite
+            #that I want /usr/local/opt/llvm/lib for Clang 15 on my
+            #Mac Wintel laptop. But find_library keeps pointing at
+            #/Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk
+            #/user/lib/libc++.tbd
+            link_directories(/usr/local/opt/llvm/lib)
+            find_library(CXXLIB c++ /usr/local/opt/llvm/lib)
+        endif()
+    endif()
+
     # to be compatible back to Mac OS X 10.7
     if (DECENTTREE_FLAGS MATCHES "oldmac")
         add_definitions("-mmacosx-version-min=10.5")
@@ -255,11 +278,12 @@ elseif (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 
     # use libc++ per default in MacOS
-    # set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -v")
+    set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -v")
     if (APPLE)
         SET(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     endif()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
     #remove -rdynamic for Clang under Linux
     if (UNIX AND DECENTTREE_FLAGS MATCHES "static")
@@ -437,12 +461,14 @@ if (NOT DECENTTREE_FLAGS MATCHES "single")
             #But I don't as yet know how to tell CMake to do that. -James B. 23-Jul-2020
         else()
             set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-            if (APPLE OR WIN32 )            
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor -fopenmp -pthread")
-                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lomp")
-            else()
-                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
+            if (APPLE)            
+                set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xpreprocessor")
+                set(CMAKE_EXE_LINKER_FLAGS  "${CMAKE_EXE_LINKER_FLAGS} -L/usr/local/bin")
             endif()
+            if (APPLE OR WIN32 )            
+                set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lomp")
+            endif() 
+            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp -pthread")
         endif()
     endif()
 else()
@@ -698,6 +724,11 @@ if (WIN32)
 else()
     #This doesn't look to be needed for clang-15 builds
     #set(PLATFORM_LIB "m")
+
+    #But this might be...
+    if (NOT "${CXXLIB}" STREQUAL "")
+        target_link_libraries(decenttree ${CXXLIB})
+    endif()
 endif()
 
 if (DECENTTREE_FLAGS MATCHES "libcxx")
