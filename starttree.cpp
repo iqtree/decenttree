@@ -20,6 +20,7 @@
 #include "starttree.h"
 #include <iostream> //for std::cout
 #include <sstream>  //for std::stringstream
+#include <utils/stringfunctions.h> //for contains
 
 namespace StartTree {
 
@@ -216,6 +217,11 @@ namespace {
         s.precision( (w>=2) ? (w-2) : 0);
         s << n;
         std::string t = s.str();
+
+        if (contains(t,"e")) {
+            return t;
+        }
+
         if (1.0 <= n ) {
             if ( t.length() < (size_t)w ) {
                 return std::string(w-t.length(), ' ') + t;
