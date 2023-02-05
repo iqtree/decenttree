@@ -227,7 +227,7 @@ bool writeMSAOutputFile(const Sequences& sequences, const std::string& msaPath)
         }
         success = true;
     }
-    catch (std::ios::failure& f) {
+    catch (const std::ios::failure& f) {
         std::cerr << "I/O error trying to write"
             << " MSA format file: " << msaPath << std::endl;
     }

@@ -14,12 +14,13 @@
 | -not-dna    |                        | with -fasta, indicates input is (not) DNA     |
 | -alphabet   | list of characters     | with -fasta, recognized nucleotide characters |
 | -unknown    | list of characters     | with -fasta, characters that indicate unknown |
-| -strip-name   | list of characters | Characters to strip from taxon names (case sensitive) |
-| -name-replace | list of characters | Characters to replace the stripped characters with |
+| -strip-name   | list of characters   | Characters to strip from taxon names (case sensitive) |
+| -name-replace | list of characters   | Characters to replace the stripped characters with |
 | -truncate-name-at | list of characters | Truncate taxon name on one of these characters |
+| -num        |                          | Replace all taxon names with numbered names of the form A_i_ (_i_ is taxon number, starting at 1) | 
 | -uncorrected | | with -fasta, do not apply Jukes-Cantor distance correction to calculated distances |
-| -filter     | | with -fasta, Filter sequences that have zero distance |
-| -no-matrix  |  | with -fasta, save memory by *not* constructing the input matrix in memory  |
+| -filter     |  | with -fasta, Filter sequences that have zero distances |
+| -no-matrix  |  | with -fasta, save memory by *not* constructing the input matrix in memory (only has an effect with -t NONE) |
 | -msa-out    | msa output file path             | given -fasta or -phylip, rewrite alignment in msa format |
 | -dist-out   | distance matrix output file path | Use STDOUT to write it to standard output  |
 | -t          | algorithm name                   | Specify the algorithm to use to construct the tree (or none) |

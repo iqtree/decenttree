@@ -526,7 +526,9 @@ public:
 
 #if USE_VECTORCLASS_LIBRARY
 /**
- * @brief 
+ * @brief  Vectorizing shim for distance matrix algorithm classes
+ *         (Vectorized<X> yields a vectorized subclass of X, 
+ *         if X meets the requirements, listed below).
  * 
  * @tparam T the distance type
  * @tparam SUPER the superclass (in practice, NJMatrix<T>, 

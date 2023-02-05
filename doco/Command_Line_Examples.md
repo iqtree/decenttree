@@ -57,7 +57,8 @@ Todo: Provide example command-lines for:
 <ul>
 <li>[todo: -msa-out]</li>
 <li>[todo: -strip-name] + [todo: -name-replace]</li>
-<li>[todo: -aln-out] Phylip Interleaved format</li>
+<li>[todo: -truncate-name-at] (truncation of long names)</li>
+<li>[todo: -num] (replacing names with numbered names, of the form A_i_ where _i_ is a number between 1 and _n_, the number of taxa)</li>
 </ul>
 
 |Command Line|Explanation|
@@ -67,6 +68,13 @@ Todo: Provide example command-lines for:
 
 
 <h2>Distance Matrices as outputs</h2>
+
+Todo:
+<ul>
+<li>-no-matrix (if a distance matrix file is being generated, and a phylogenetic tree is not being inferred, -t NONE,
+    it isn't strictly necessary to create an in-memory distance matrix, and this option tells decenttree to save memory
+    by NOT allocating or using one). 
+</ul>
 
 |Command Line|Explanation|
 |------------|-----------|
