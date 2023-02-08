@@ -177,7 +177,7 @@ public:
      *        divisible by MATRIX_ALIGNMENT.
      */
     void setDimensions(size_t r, size_t c) {
-        clear();
+        actual_clear();
         if (0==c || 0==r) {
             return;
         }

@@ -542,6 +542,7 @@ public:
  *         using it with SUPER=UPGMAMatrix<T>!), because 
  *         that has a rather different getRowMinima().
  *         There's a separate class for vectorizing that.
+ *         Nor can it vectorize FancyNJMatrix.
  */
 template <class T=NJFloat, class SUPER=BIONJMatrix<T>, 
           class V=FloatVector, class VB=FloatBoolVector>

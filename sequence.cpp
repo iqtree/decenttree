@@ -406,6 +406,52 @@ bool Sequences::loadSequencesFromFasta(const std::string& fastaFilePath,
 }
 
 /**
+ * @brief  Read the first line of a Phylip Alignment file (which is the number of sequences,
+ *         white space, and the length of all the sequences)
+ * 
+ * @tparam S                the stream type
+ * @param  in               the stream itself
+ * @param  num_sequences    reference - will have the number of sequences
+ *                          in the alignment assigned to it (on success)
+ * @param  sequence_length  reference - will have the length of the sequences
+ *                          (every sequence must have the same length)
+ *                          assigned to it (on success)
+ * @return true             on success
+ * @return false            on failure (an error message will have been written
+ *                          to standard output).
+ * 
+ * @note   it is assumed that failbit is not already set on the stream when this 
+ *         function is called.
+ */
+template <class S> bool readFirstLineOfPhylipAlignmentFile(S& in, size_t& num_sequences, size_t& sequence_length) {
+    if (in.eof()) {
+        std::cerr << "Sequence file was empty.";
+        return false;
+    }
+    std::string line;
+    safeGetLine(in, line);
+    //Read the header line
+    std::stringstream linestream(line);
+    linestream >> num_sequences;
+    if (in.fail()) {
+        std::cerr << "Could not read number of sequences.";
+        return false;
+    }
+    linestream >> sequence_length;
+    if (in.fail()) {
+        std::cerr << "Could not read sequence length.";
+        return false;
+    }
+    if (num_sequences < 1 || sequence_length < 1 ) {
+        std::cerr << "Number of sequences " << num_sequences
+                    << " or Sequence length " << sequence_length
+                    << " was invalid.";
+        return false;
+    }
+    return true;
+}
+
+/**
  * @brief  Load a sequence alignment from a phylip format file
  * @param  phylipFilePath   - the path to the file
  * @param  alphabet        - the (nucleotide?) alphabet to use
@@ -443,6 +489,12 @@ bool Sequences::loadSequencesFromPhylip(const std::string& phylipFilePath,
     }
     size_t num_sequences       = 0;
     size_t sequence_length     = 0;
+    if (!readFirstLineOfPhylipAlignmentFile(in, num_sequences, sequence_length))
+    {
+        in.close();
+        return false;
+    }
+
     bool   have_read_names     = 0;
     size_t name_length         = 0; //Number of characters to use for sequence name
     size_t sequence_num        = 0; //Ordinal sequence # to read next
@@ -450,20 +502,6 @@ bool Sequences::loadSequencesFromPhylip(const std::string& phylipFilePath,
     for (; !in.eof(); ++line_num) {
         std::string line;
         safeGetLine(in, line);
-        if (line_num == 1) {
-            //Read the header line
-            std::stringstream linestream(line);
-            linestream >> num_sequences;
-            linestream >> sequence_length;
-            if (num_sequences < 1 || sequence_length < 1 ) {
-                in.close();
-                std::cerr << "Number of sequences " << num_sequences
-                          << " or Sequence length " << sequence_length
-                          << " was invalid.";
-                return false;
-            }
-            continue;
-        }
         if (line == "") {
             if (sequence_num!=0 && sequence_num!=num_sequences) {
                 in.close();
@@ -817,7 +855,7 @@ SequenceLoader::SequenceLoader(char unknown, bool isDNA,
     , is_site_variant(site_variant)
     , report_progress(report_progress_while_loading), unkLen(0)
     , buffer(nullptr), sequence_data(nullptr)
-    , unk_buffer(nullptr), unknown_data(nullptr) {
+    , unk_buffer(nullptr), unknown_data(nullptr), num_states(4) {
     rank      = sequences.size();
     rawSeqLen = sequences.front().sequenceLength();
     seqLen    = 0;
@@ -982,6 +1020,7 @@ bool SequenceLoader::writeDistanceMatrixToFile(bool numbered_names,
         progress_display& show_progress;
     public:
         typedef FlatMatrix super;
+        FakeMatrix(const FakeMatrix& rhs) = delete;
         FakeMatrix(SequenceLoader& my_owner, progress_display& progress_bar)
             : super(), owner(my_owner), show_progress(progress_bar) {}
         virtual void setSize(intptr_t rows) { rowCount=rows;}
