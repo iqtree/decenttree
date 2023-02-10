@@ -45,47 +45,40 @@ format) </li>
 | decenttree -phylip ../example/3x3.phy<br> -dist-out 3x3_as_dna.dist<br> -q -no-out | Calculate a distance matrix for a dummy 3 taxon, 3 nucleotide input, which has A, C, or T, but not G sites.  By default decenttree assumes that sites can be A, C, G, or T.
 | decenttree -phylip ../example/3x3.phy<br> -dist-out 3x3_not_dna.dist<br> -q -no-out -not-dna | Calculate a distance matrix using a 3-character alphabet, implied by input, which has A, C, or T, but not G. |
 | decenttree -phylip ../example/3x3.phy<br> -dist-out 3x3_five_chars.dist<br> -q -no-out -alphabet CATGU | Calculate a distance matrix using a 5 character alphabet |
-| cat 3x3*.dist | Display the distance matrices output by the previous three examples, showing the affect of alphabet size on corrected distances |
-
-
-
-Todo: Provide example command-lines for:
-<ul>
-<li>[todo: -fasta]</li>
-<li>[todo: -alphabet]</li>
-</ul>
-
-|Command Line|Explanation|
-|------------|-----------|
+| cat 3x3*.dist | Display the distance matrices output by the previous three examples, showing the affect of alphabet size on corrected distances. |
 
 <h2>Alignments as outputs</h2>
-Todo: Provide example command-lines for:
-<ul>
-<li>[todo: -msa-out]</li>
-<li>[todo: -strip-name] + [todo: -name-replace]</li>
-<li>[todo: -truncate-name-at] (truncation of long names)</li>
-<li>[todo: -num] (replacing names with numbered names, of the form A_i_ where _i_ is a number between 1 and _n_, the number of taxa)</li>
-</ul>
 
 |Command Line|Explanation|
 |------------|-----------|
+| decenttree -phylip ../example/example.phy<br> -msa-out example.msa<br> -t NONE -no-out -no-banner | Given Phylip-format alignment file, output a file in an msa format, for the same alignment |
+| decenttree -phylip ../example/example.phy<br> -msa-out example.msa<br> -t NONE -no-out -no-banner<br>-strip-name fish | The same, but replace the characters 'f', 'i', 's' and 'h' with underscores, in taxon names (some phylogenetic inference programs treat commas, slashes, hyphens, colons, single quotes as special characters, that may not appear in taxon names) |
+| decenttree -phylip ../example/example.phy<br> -msa-out example.msa<br> -t NONE -no-out -no-banner<br>-truncat-name-at e | The same, but truncate every taxon name at the first occurrence of the character 'e' (this is a bit artificial.  But often taxon names are identifier, a marker character, and supplementary information, and truncating at the marker character may be necessary if you are providing input to a program that has a taxon name length limit) |
+| decenttree -phylip ../example/example.phy<br> -msa-out example.msa<br> -t NONE -no-out -no-banner<br>-num | The same, but replace taxon names with numbered names "A1", "A2", and so on. |
 | decenttree -phylip ../example/example.phy<br> -aln-out interleaved_example.phy<br> -t NONE -no-out -no-banner | Convert an un-interleaved phylip alignment file into an interleaved one |
 | decenttree -phylip ../example/example.phy<br> -aln-out interleaved_example.phy.gz<br> -t NONE  -no-out -no-banner | Convert an un-interleaved phylip alignment file into an interleaved one, and zip the output file as it is generated (zipping is implied by the .gz extension) |
 
-
 <h2>Distance Matrices as outputs</h2>
 
-Todo:
+Decenttree can be used to generate distance matrices (it has this functionality because it made it easier to generate test inputs for other programs that require distance matrices, and impose additional requirements - such as no two sequences being identical).
+
 <ul>
-<li>-no-matrix (if a distance matrix file is being generated, and a phylogenetic tree is not being inferred, -t NONE,
+<li>The -strip-name, -truncate-name-at and -num parameters also affect the taxon names that are quoted in distance matrix outputs. If the file-name ends with ".gz" results in
+</li>
+<li>The -no-matrix option may save memory. If a distance matrix file is being generated,    
+    and a phylogenetic tree is not being inferred (because, for
+    example, -t NONE was supplied as an option on the command-line)
     it isn't strictly necessary to create an in-memory distance matrix, and this option tells decenttree to save memory
-    by NOT allocating or using one). 
+    by NOT allocating or using one.
+    </li>
+<li>The -filter instructs decenttree to identify groups (pairs, or larger sets) of taxa, for which the sequences have no characters that are definitely different, and to remove all but one of the taxa, in each such group, from consideration (this option, for removing such such "problematic" sequences, exists because some distance matrix phylogenetic inference implementations, that take alignment files as inputs, will refuse to accept inputs containing sets of taxa with zero differences).
 </ul>
 
 |Command Line|Explanation|
 |------------|-----------|
 |decenttree -phylip ../example/example.phy<br> -no-banner <br> -dist example.dist -out-format upper <br>-t NONE -no-out | Using the default distance matrix algorithm, infer a distance matrix, and write the distance matrix (in upper-triangle Phylip format) to the file, example.dist. -t NONE says *not* to use a phylogenetic inference algorithm.  If no out-format parameter is provided the default is square. |
 |decenttree -phylip ../example/example.phy<br> -no-banner -uncorrected<br> -dist uncorrected.dist.gz -out-format upper.gz<br> -t NONE -no-out | The same, only this time uncorrected distances are to be calculated, the distance matrix is to be written to uncorrected.dist.gz, and is to be compressed with gzip|
+|./decenttree -in ../example/example.dist -dist example_copy.dist -out-format upper -f 4 -t NONE -no-out |  Given a distance matrix (!) file as an input, generate another distance matrix file (in upper triangle format, with four digits of precision). |
 
 <h2>Benchmarking</h2>
 In these examples, simulated_1k.fa.gz is a fasta file containing a simulated alignment with 1000 taxa, and a sequence length of 10,000,
