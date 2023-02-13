@@ -48,7 +48,7 @@ public:
     PyObject *ptr;
     ScopedPyObjectPtr(): ptr(nullptr) {}
     explicit ScopedPyObjectPtr(PyObject* rhs) : ptr(rhs) {}
-    ScopedPyObjectPtr(const ScopedPyObjectPtr& rhs): ptr(ptr) {
+    ScopedPyObjectPtr(const ScopedPyObjectPtr& rhs): ptr(rhs.ptr) {
         if (ptr!=nullptr) {
             Py_INCREF(ptr);
         }
@@ -127,7 +127,7 @@ bool isVectorOfString(const char* vector_name, PyObject*          sequence_arg,
         complaint << vector_name << " was not supplied.";
         return false;
     }
-    ScopedPyObjectPtr seq = PySequence_List(sequence_arg);
+    ScopedPyObjectPtr seq ( PySequence_List(sequence_arg) );
     if (seq==nullptr) {
         complaint << vector_name << " is not a sequence.";
         return false;
@@ -204,11 +204,11 @@ bool appendDoubleVector(PyObject* append_me, DoubleVector& to_me) {
 bool appendDoublesToVector(const std::string& row_vector_name, PyObject* seq_for_row, 
                            DoubleVector& doubles, size_t& row_width_here, 
                            std::stringstream& complaint ) {
-    if (sequence_arg==nullptr) {
+    if (seq_for_row==nullptr) {
         complaint << row_vector_name << " was not supplied.";
         return false;
     }
-    ScopedPyObjectPtr seq = PySequence_List(sequence_arg);
+    ScopedPyObjectPtr seq(PySequence_List(seq_for_row));
     if (seq==nullptr) {
         complaint << row_vector_name << " is not a sequence.";
         return false;
@@ -274,7 +274,7 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
         complaint << vector_name << " was not supplied.";
         return false;
     }
-    ScopedPyObjectPtr seq = PySequence_List(vector_arg);
+    ScopedPyObjectPtr seq(PySequence_List(vector_arg));
     if (seq==nullptr) {
         complaint << vector_name << " is not a sequence.";
         return false;
@@ -287,7 +287,7 @@ bool isVectorOfDouble(const char*   vector_name,   PyObject* vector_arg,
             return false;
         }
         if (PySequence_Check(item)==1) {
-            ScopedPyObjectPtr seq_for_row = PySequence_List(item);
+            ScopedPyObjectPtr seq_for_row(PySequence_List(item));
             //Nested sequence
             std::stringstream row_seq_name;
             size_t            row_width_here=0;
