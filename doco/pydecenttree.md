@@ -20,12 +20,12 @@ pydecenttree is a C++ Python Extension that makes the distance matrix phylogeny 
 | precision | number | indicates how many digits of precision will be used by pydecenttree, to format the distances between nodes in the Newick tree string, it returns.
 | verbosity | number | indicates how much information (if any) should be written to standard output during execution.
 
-<h2>Compiling pydecenttree</h2>
-These instructions are for Python 3.10 (pydecenttree has not been built with Python 2), but the process should be similar with earlier versions of Python 3.
-Python 3.11 does not appear to allow the use of setup.py
+<h2>Building and installing the pydecenttree Python package</h2>
+<h3>With Python 3.10 or earlier, on Mac OS</h3>
+These instructions are for Python 3.10 (pydecenttree has not been built with Python 2), but the process should be similar with earlier versions of Python 3. Python 3.11 does not appear to allow the use of setup.py
 
 On Macintosh.  From the decenttree folder (*after* you have built the C++ executables), to build,
-install and test the pydecenttree run:
+install and test the pydecenttree run the following (replace python3.10 with the name of your python interpreter):
 
 ```
 cd pydecenttree
@@ -38,3 +38,19 @@ python3.10 setup.py install
 python3.10 test_pydecenttree.py
 ```
 
+<h3>With Python 3.11 or later, on Mac OS</h3>
+
+On Macintosh.  From the decenttree folder (*after* you have built the C++ executables), to build,
+install and test the pydecenttree package, run the following (replace python3.11 with the name of your python interpreter):
+
+```
+python3.11 -m ensurepip --upgrade
+python3.11 -m pip install --upgrade pip
+cd pydecenttree
+export CFLAGS="-Xpreprocessor -fopenmp $CFLAGS"
+export CXXFLAGS="-Xpreprocessor -fopenmp $CXXFLAGS"
+rm -r build
+rm -r dist
+pip install -e . 
+python3.11 test_pydecenttree.py
+```

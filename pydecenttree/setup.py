@@ -17,7 +17,7 @@ link_flags = []
 #
 #>  export CFLAGS="-Xpreprocessor -fopenmp $CFLAGS"
 #>  export CXXFLAGS="-Xpreprocessor -fopenmp $CXXFLAGS"
-#
+#b
 #(you need to set both CFLAGS and CXXFLAGS!  Don't know why)
 #...but I get lots of repeated warnings out of signal.h when I build.
 #
@@ -47,7 +47,6 @@ module1 = Extension("pydecenttree",
 #and ../utils/operatingsystem.cpp are needed.
 
 #Todo: Consider adding additional macros:
-#USE_PROGRESS_DISPLAY=1
 #USE_GZSTREAM=1
 #
 #Todo: want extra_compile_args "-fopenmp=libomp"
