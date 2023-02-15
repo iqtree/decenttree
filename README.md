@@ -112,3 +112,5 @@ For additional documentation, see:
 - The progress bar functionality in progress.h and progess.cpp was
   originally developed for IQTree2 See: https://github.com/iqtree/iqtree2.
   
+<h3>Coding quality</h3>
+The coding quality of decenttree has been assessed by SoftWipe (https://github.com/adrianzap/softwipe). The overall score is 5.7, which is higher than the average score in the benchmark in SoftWipe paper. 
