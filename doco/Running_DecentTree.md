@@ -1,4 +1,19 @@
 <h1>Running decenttree</h1>
+
+This is an example of how to run decenttree with Neighbor Joining algorithm. Other algorithms can be found in https://github.com/iqtree/decenttree/blob/master/doco/Algorithms.md.
+
+If the input file is in multiple sequence alignment format (.fasta, can be compressed)
+
+```
+decentTree -fasta $inputFile -t NJ -out $outputFile
+```
+
+If the input file is in distance matrix format
+
+```
+decentTree -in $inputFile -t NJ -out $outputFile
+```
+
 <h2>Command-line options</h2>
 
 | Option      | Argument               | Description |
