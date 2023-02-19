@@ -315,17 +315,10 @@ if (MSVC)
         add_definitions(/D_UWIN)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /GX")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /I${EIGEN3_INCLUDE_DIR} /GX")
-    else()
-        #enable multi-processor compilation
-        add_definitions("/MP")
-        #Though zlib mightn't compile with it set, with Visual Studio 2019.
-        #It didn't for me.  But it compiled with it with Visual Studio 2022.
     endif()
     if (CMAKE_BUILD_TYPE STREQUAL "Release")
         add_definitions(/Ot /Oi)
-        if (VCC)
-            #add_definitions(/O2) - not compatible with /RTC1
-        elseif (ICC)
+        if (ICC)
             add_definitions(/O3)
         endif()
     endif()
