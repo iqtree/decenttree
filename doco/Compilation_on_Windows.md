@@ -25,5 +25,7 @@ At present (October 2022), the version of CMake that MS Code uses (3.23 or 3.24)
 Builds may fail outright (with no error messages), due to missing DLLs (libisl-23.dll, for example) (the version number might vary). If you are installing GCC using MSYS2 and pacman you may find it necessary to copy files from c:\msys64\user\bin (where pacman puts them!) into c:\msys64\mingw64\bin (which is where pacman probably should put them, but might not).
 <br><br>
 <h4>Compiling with Microsoft Code and the Visual Studio Compiler</h4>
-[todo: this bit not written yet]
+On Windows 10 (and 11) workstations, decenttree will compile with Visual Studio 2017 through Visual Studio 2022.
+It's recommended that you compile 64 bit versions (using the - x86_amd64 rather than the - amd64_x86 compiler toolkit, if both choices are available).
+
 

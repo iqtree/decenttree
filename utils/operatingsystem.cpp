@@ -8,7 +8,7 @@
 #include "operatingsystem.h"
 #include <string>
 #include <sstream>
-#if defined(WIN32) || defined(WIN64)
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
     #include <io.h> //for _isatty
     #include <stdio.h> //for _fileno (explicit include needed for GCC 9.2 builds)
 #else

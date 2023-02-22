@@ -7,7 +7,7 @@ numpy_include = numpy.get_include()
 #python_include = get_paths() 
 #(but this doesn't seem necessary, so I've commented it out)
 
-dirs   = [numpy_include, "..", "../build"]
+dirs   = [numpy_include, "..", "../build", "../zlib-1.2.7", "../build/zlib-1.2.7"]
 flags  = ['-std=c++11']
 link_flags = []
 

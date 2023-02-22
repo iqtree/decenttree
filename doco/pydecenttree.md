@@ -54,3 +54,42 @@ rm -r dist
 pip install -e . 
 python3.11 test_pydecenttree.py
 ```
+
+<h3>With Python 3.11, on Windows 10 (or 11)</h3>
+<i>These instructions are probably not the best (and are as yet incomplete).
+I've got as far as installing python and numpy, but I haven't figured out how
+to get pip to build (let alone install) the pydecenttree module itself</i> -James.
+
+Download Python via the Windows download page
+
+[https://www.python.org/downloads/windows](https://www.python.org/downloads/windows).
+
+Run the Python 3.11 app, and execute the commands
+```
+import ensurepip
+ensurepip.bootstrap()
+```
+
+Open the command prompt and navigate to the folder where you installed python (for me this was c:\Users\james\AppData\Local\Programs\Python\Python311). Execute the command (alernatively you could add your Python install directory to your %PATH% and then you could execute the following command from any folder - I didn't):
+
+```
+python -m pip install numpy
+```
+
+Navigate to the pydecenttree folder (for me this was c:\Users\james\Source\repos\decenttree\pydecenttree).
+Run a command <i>like</i> this (replace C:\Users\james\AppData\Local\Programs\Python\Python311 with the directory 
+to which you installed Python):
+
+```
+C:\Users\james\AppData\Local\Programs\Python\Python311\Scripts\pip install -e .
+```
+
+(if you get an error message about it not being able to find zconf.h, you may need
+to run CMake in the build subfolder of the decenttree project folder, either 
+directly, or via VS Code or Microsoft VIsual Studio, to create a
+build\zconf.h header file)
+
+(this is building for me but I am getting a disturbing number of warnings)
+
+
+
