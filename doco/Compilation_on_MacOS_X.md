@@ -25,8 +25,8 @@ The easiest way to install each of the other components is with
 |----------------------|------------------|
 | brew install cmake   | decenttree compilation has only been tested with cmake 3.20.1 and 3.24.1 |
 | brew install libomp  | parallelization in decenttree has only been tested with libomp 14.0.6 |
-| brew install python  | [pydecenttree](pydecenttree.md) compliation has only been tested with python 3.10 |
-| brew install numpy   | [pydecenttree](pydecenttree.md) compilation has only been tested with numpy 1.23.1.1 |
+| brew install python  | [pydecenttree](pydecenttree.md) compilation has only been tested with python 3.10 and 3.11 on Mac OS |
+| brew install numpy   | [pydecenttree](pydecenttree.md) compilation has only been tested with numpy 1.23.1.1 and 1.24.2 on Mac OS |
 | brew install gcc     | compilation has only been tested (on Intel Mac OS) with version 12.2 |
 | brew install llvm    | to install more recent versions of the clang compiler [but note that, as yet, this does not work, as I have not figured out how to clang to interpret the .tbd files that find_library identifies when asked to find the C++ library). |
 
@@ -44,5 +44,16 @@ to ensure that Microsoft Code can find the Clang compiler.
 ```
 
 <h2>Compiling dcenttree with XCode</h2>
-This section not written yet.
+(These instructions have only been tested with XCode 14.3 Beta)
+<br><br>
+Download XCode and install it, either via App Store or via the [Apple Developer Page](https://developer.apple.com/xcode/).  Version 14.3
+is about 7.2 Gb (!).
+I followed the instructions at 
+[freeCodeCamp](https://www.freecodecamp.org/news/how-to-download-and-install-xcode/).
+
+
+
+
+
 <h2>Compiling decenttree with Visual Code</h2>
+There is already a .vscode folder under the project root, for compiling decenttree under Microsoft's Visual Code.  You may need to install a C++ compiler.
