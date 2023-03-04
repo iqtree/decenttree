@@ -1,19 +1,20 @@
 <h1>Command-line Examples for decenttree</h1>
-In these examples, **decenttree** is being run in the build
-subdirectory (the example folder of the project is a sibling
-of the build directory). If the relative path to the example 
-folder is different you will have to replace ../example in 
-file path parameters.
-<p>
+In these examples, <b>decenttree</b> is being run in the build subdirectory (on MacOS, the example folder of the project is a sibling of the build directory). If the relative path to the example folder is different you will have to replace ../example in file path parameters.
+<br><br>
 The files, in the *example* directory, that these command-line examples make use of, are:
-<ul>
-<li> example.phy is a small (17-taxon) example alignment (in un-interleaved phylip example format) </li>
-<li> example.phy is the same alignment, compressed with gzip </li>
-<li> example.dist is a distance matrix (in square phylip distance matrix 
-format) </li>
-<li> compressed_example.dist.gz is the same distance matrix, compressed with gzip </li>
 
-</ul>
+|File|Content|
+|----|-------|
+|<b>example.phy</b>| a small (17-taxon) example alignment (in un-interleaved phylip sequence format)|
+|<b>compressed_example.phy.gz</b>| the same alignment, compressed with gzip |
+|<b>interleaved_example.phy</b>| the same alignment, uncompressed, in an interleaved Phylip sequence format)|
+|<b>example.dist</b>|a distance matrix (in square phylip distance matrix format, generated from the sequence data in example.phy|
+|<b>compressed_example.dist.gz</b>|the same distance matrix, compressed with gzip|
+|<b>uncorrected.dist</b>|a distance matrix, of uncorrected distances, generated from the sequence data in example.phy|
+|<b>simulated_1k.fa.gz</b>|a fasta file containing a simulated alignment with 1000 taxa, and a sequence length of 10,000|
+|<b>3x3.phy</b>|a dummy 3 taxon, 3 nucleotide input, which has A, C, or T, but not G sites (this is a very artificial example used for testing the function of "imputed alphabet" and non-standard alphabet command-line options)|
+
+<h2>Simplest examples (to get version and usage)</h2>
 
 |Command line|Explanation|
 |------------|-----------|
