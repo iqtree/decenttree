@@ -46,14 +46,25 @@ to ensure that Microsoft Code can find the Clang compiler.
 <h2>Compiling dcenttree with XCode</h2>
 (These instructions have only been tested with XCode 14.3 Beta)
 <br><br>
-Download XCode and install it, either via App Store or via the [Apple Developer Page](https://developer.apple.com/xcode/).  Version 14.3
-is about 7.2 Gb (!).
+Download XCode and install it, either via App Store or via the
+[Apple Developer Page](https://developer.apple.com/xcode/)
+(Version 14.3
+is about 7.2 Gb (!)). Download "Command Line Tools for XCode".
 I followed the instructions at 
 [freeCodeCamp](https://www.freecodecamp.org/news/how-to-download-and-install-xcode/).
 
+You may need to
 
+```
+cd ~/Projects/decenttree
+mkdir xcode
+cd xcode
+cmake -G Xcode -DCMAKE_XCODE_ATTRIBUTE_CC=/usr/local/opt/llvm/bin/clang -DCMAKE_XCODE_ATTRIBUTE_CXX=/usr/local/opt/llvm/bin/clang++ ..
+```
 
+This will create a "decenttree.xcodeproj" file, in the xcode subfolder, which can be opened in XCode.
 
+(but this is about as far as I've got.  I barely ever use XCode, and I haven't used it in the last year and a half! -James) 
 
 <h2>Compiling decenttree with Visual Code</h2>
 There is already a .vscode folder under the project root, for compiling decenttree under Microsoft's Visual Code.  You may need to install a C++ compiler.
