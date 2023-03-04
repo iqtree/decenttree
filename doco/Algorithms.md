@@ -1,9 +1,11 @@
 <h1>decenttree Algorithm Implementation Details</h1>
-All neighbour-joining algorithms rely on matrices of distances between clusters (of one taxon or multiple taxa). Most calculate adjusted distances, taking into account how far individual clusters are, on average, from other clusters, and some use auxiliary matrices (such as the estimated variance matrix of BIONJ), but all use matrices of distances.<p>
+All neighbour-joining algorithms rely on matrices of distances between clusters (of one taxon or of multiple taxa). Most calculate adjusted distances, taking into account how far individual clusters are, on average, from other clusters, and some use auxiliary matrices (such as the estimated variance matrix of BIONJ), but all use matrices of distances.<p>
 
-The decenttree algorithms (except for the ONJ algorithms, which use triangular matrices), make use of square matrices (using triangular matrices would reduce memory consumption by a factor of 2, but would considerably increase the cost of accessing entries in the matrix, and matrix access would also have been much more difficult to vectorize efficiently).
+The algorithms that decenttree makes available (except for the ONJ algorithms, which use triangular matrices), make use of square matrices (using triangular matrices would reduce memory consumption by a factor of 2, but would considerably increase the cost of accessing entries in the matrix, and matrix access would also have been much more difficult to vectorize efficiently).
 
-The bulk of the memory required by the decenttree distance matrix tree inference algorithms, is that used to track the ( n * n entry) distance matrices themselves.  There are also some vectors, the track clusters to be considered, or the structure of the subtrees for the clsuters yet to be joined, but these are much smaller (of size proportional to n, rather than n * n).
+(in the following <i>n</i> is shorthand for  number of taxa)
+
+The bulk of the memory required by the simpler decenttree distance matrix tree inference algorithms (UPGMA and NJ in particular), is that used to track the ( n * n entry) distance matrices themselves.  There are also some vectors, the track clusters to be considered, or the structure of the subtrees for the clusters yet to be joined, but these are much smaller (all are of size proportional to n, rather than n * n).
 
 <h2>Memory Requirements</h2>
 
@@ -38,12 +40,15 @@ appear to be slightly slower) than the NJ-R and NJ-R-V implementations.
 
 <h2>Other common features</h2>
 All of the distance-based algorithms implemented in decentTree make use of distance matrices.
-Distance-*matrix* algorithms take, as their principle input (apart from a list of names of the N Taxa),
-an N row, N column matrix of distances; the distance between taxa *a* and *b* can be read by 
-looking at the *b*th entry in the *a*th row (or the *a*th entry in the *b*th row, 
+Distance-matrix phylogenetic tree inference algorithms take, as their principle input (apart from a list of names of the N Taxa),
+an N row, N column matrix of distances; the distance between taxa <i>a</i> and <i>b</i> can be read by 
+looking at the <i>b</i>th entry in the <i>a</i>th row (or the <i>a</i>th entry in the <i>b</i>th row, 
 if distances are symmetric).  In practice, distances *are* symmetric and
-the distance measured from a to b is the same as the distance measured from b to a.  
+the distance measured from <i>a</i> to <i>b</i> is the same as the distance measured from <i>b</i> to <i>a</i>.  
 The distance between any sequence and itelf is assumed to be zero.
+<br><br>
+(The consequences of violating the "every sequence or cluster is distance zero from itself" assumption have not
+been tested but are probably dire!)
 <br><br>
 Uncorrected distances are typically calculated by counting the number of characters that must differ,
 between two sequences in a sequence alignment, and dividing the count by the total number 
@@ -57,9 +62,9 @@ decentTree can be supplied a sequence alignment (rather than a distance matrix).
 distances; if uncorrected distances are desired, they can be requested with the <i>-uncorrected</i> command line parameter)
 <br><br>
 Neighbour-joining algorithms (except for AUCTION and STICHUP algorithms, which use raw distances) tend to look for neighbours by searching for pairs of clusters (or indivdidual taxa) with a minimal adjusted 
-difference. (the literature tends to talk about a Q matrix, where Qij is the adjusted difference between 
-the *i*th and *j*th cluster). The details vary from algorithm to algorithm, but typically the adjusted 
-distances are calculated by subtracting "compensatory" terms to adjust for how distant each of the two clusters is, on average, from all other clusters.  In the literature entries in the Q matrix are calculated as
+difference. (the literature tends to talk about a <b>Q</b> matrix, where <b>Q</b><i>i</i><i>j</i> is the adjusted difference between 
+the <i>i</i>th and <i>j</i>th cluster). The details vary from algorithm to algorithm, but typically the adjusted 
+distances are calculated by subtracting "compensatory" terms to adjust for how distant each of the two clusters is, on average, from all other clusters.  In the literature entries in the <b>Q</b> matrix are calculated as
 <br><br>
 (N-2)*D(x,y) - sum(D row for x) - sum(D row for Y)
 <br><br>
@@ -101,24 +106,32 @@ column for cluster a, reduces the amount of memory in use (though, not the amoun
 of memory allocated!).
 
 Since the sum of the first N squares is N(N+1)(2N+1)/6 (approximately one third of the cube of N), the effect of physically (rather than virtually) deleting rows and columns,
-over the course of the inference of a phylogenetic tree, is, for large enough N, to reduce the expected number of cache fetches (or cache misses) resulting from access to the distance matrix, by a factor of three. <i>If all of the distances in the distance matrix are actually examined, one every iteration, as they are in the NJ and BIONJ algorithms, but <b>not</b> in the NJ-R, BIONJ-R, and the other "-R" algorithms.</i>
+over the course of the inference of a phylogenetic tree, is, for large enough N, to reduce the expected number of cache fetches (or cache misses) resulting from access to the distance matrix, by a factor of three. <i>If all of the distances in the distance matrix are actually examined, once every iteration, as they are in the NJ and BIONJ algorithms, but as they are <b>not</b> in the NJ-R, BIONJ-R, and the other "-R" algorithms.</i>
 
 Maintaining the entire matrix (and not just the upper or lower triangle) makes it
 possible to do the memory accesses almost entirely sequentially (except for the
 column rewriting and moving when clusters are moved.
 
-In algorithms that have Variance Estimate matrices (BIONJ and its variants), operations (row and column overwrites, row and column deletes) are "mirrored" on the Variance Estimate matrices. 
+In algorithms (BIONJ and its variants) that have <b>V</b> matrices (Variance Estimate matrices), operations (row and column overwrites, row and column deletes) are "mirrored" on the Variance Estimate matrices. 
 
-In algorithms that maintain them (NJ-R, and BIONJ-R, and their variants), row (but not column!) operations are mirrored on the "sorted distance" (S) and "cluster index" I matrices (references to clusters that have already been joined into larger clusters, in I, are treated as having been "virtually deleted"; when a lower adjusted difference to a cluster is found, it is necessary to check if that cluster is "still in play", or if it has already been joined).
+In algorithms that maintain them (NJ-R, and BIONJ-R, and their variants), row (but not column!) operations are mirrored on the "sorted distance" (<b>S</b>) and "cluster index" <b>I</b> matrices (references to clusters that have already been joined into larger clusters, in <b>I</b>, are treated as having been "virtually deleted"; when a lower adjusted difference to a cluster is found, it is necessary to check if that cluster is "still in play", or if it has already been joined).
 
-Columns cannot easily be deleted out of existing rows of the S and I matrices (if the algorithm has them), because in each row of those arrays, then entries are sorted by ascending distance (so to find out which entry 
+Columns cannot easily be deleted out of existing rows of the <b>S</b> and <b>I</b> matrices (if the algorithm has them), because in each row of those arrays, then entries are sorted by ascending distance (so to find out which entry 
 is for a column that is to be removed, a search would be necessary, and to
 write an entry for the column for a newly joined cluster, an insert into 
-a sorted array would be necessary). The I and S matrices contain entries
-for clusters which have a cluster number less than that of the cluster 
-mapped to the row they are in. As neighbour joining continues, some of these will be for clusters that are no longer under consideration, because
-they have already been joined into another, newer, cluster. Distances to
-these clusters are "skipped" over.
+a sorted array would be necessary).
+
+The <b>S</b> and <b>I</b> matrices contain entries for clusters which have a cluster number less than that of the cluster mapped to the row they are in. 
+As neighbour joining continues, some of these will be for clusters that 
+are no longer under consideration, because they have already been joined 
+into another, newer, cluster. Distances to these clusters are "skipped" over.
+
+(in practice they are usually skipped without the need for a check that
+the cluster is still "in play", because such clusters are treated as having
+an average distance, to other clusters, that is negative and very large, which
+is enough to rule them out of consideration without the need for checks to see
+whether they are actually "in play", but there are "last resort" checks 
+that possible cluster joins reference only clusters that are still "in play")
 
 <h2>Row search order</h2>
 (this is one of the few areas of meaningful difference between the NJ-R implementation in decenttree and the reference RapidNJ implementation). In NJ-R and BIONJ-R the order in
@@ -128,6 +141,7 @@ for the rows (the idea is to search rows that are "likelier", when they are sear
 to yield better lower bounds, first, since: the better the lower bound already found early, the fewer cluster pairs will have to be considered later).
 <br><br>
 (RapidNJ doesn't do this)
+<br><br>
 <h2>Working matrix reallocation</h2>
 During the course of the execution of a distance matrix algorithm, as the number of rows and columns in use falls, less and less of the memory allocated to the matrix remains in use.  Periodically, the items still in use in the matrix are moved, so that a smaller block of sequential memory contains all the distances in the matrix (in row major order), with no "unused" memory between rows.
 <h2>Treatment of duplicates</h2>
