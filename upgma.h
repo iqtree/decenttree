@@ -680,7 +680,7 @@ protected:
                     if (row_b<row_a) {
                         std::swap(row_a, row_b);
                     }
-                    intptr_t cluster_x = rowToCluster[row_count-1];
+                    size_t cluster_x = rowToCluster[row_count-1];
                     cluster(row_a, row_b);
                     vc[i] = cluster_c;
                     cluster_to_row.push_back(row_a);

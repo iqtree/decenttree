@@ -246,7 +246,7 @@ public:
             #pragma omp parallel num_threads(threadCount)
             #endif
             {
-                int threadNum = getThreadNumber();
+                intptr_t threadNum = getThreadNumber();
                 for (intptr_t r=threadNum; r<row_count; r+=threadCount) {
                     sortRow(r,r,false,sorters[threadNum]);
                     //copies the "left of the diagonal" portion of
@@ -311,7 +311,7 @@ public:
      *                   to sort), that is "owned" by the current thread.
      * @note 
      */
-    void sortRow(intptr_t r /*row index*/, int c /*upper bound on cluster index*/
+    void sortRow(size_t r /*row index*/, size_t c /*upper bound on cluster index*/
         ,  bool parallel, Sorter& sorter) {
         //1. copy data from a row of the D matrix into the S matrix
         //   (and write the cluster identifiers that correspond to
@@ -351,9 +351,9 @@ public:
      * @param r the row number
      */
     void purgeRow(intptr_t r /*row index*/) const {
-        T*    values         = entriesSorted.rows[r];
-        int*  clusterIndices = entryToCluster.rows[r];
-        int   c              = rowToCluster[r];
+        T*     values         = entriesSorted.rows[r];
+        int*   clusterIndices = entryToCluster.rows[r];
+        size_t c              = rowToCluster[r];
         intptr_t w = 0;
         intptr_t i = 0;
         for (; i<row_count ; ++i ) {
@@ -781,9 +781,9 @@ public:
                 //better min(Q).
 
         Position<T> pos(row, 0, infiniteDistance, 0);
-        const T*   rowData   = entriesSorted.rows[row];
-        const int* toCluster = entryToCluster.rows[row];
-        const int  cluster   = rowToCluster[row];
+        const T*     rowData   = entriesSorted.rows[row];
+        const int*   toCluster = entryToCluster.rows[row];
+        const size_t cluster   = rowToCluster[row];
 
         size_t partners   = indexOfFirstGreater
                             (rowData, clusterPartners[cluster], rowBound);
