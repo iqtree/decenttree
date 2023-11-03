@@ -104,10 +104,10 @@ void addBioNJ2020TreeBuilders(Registry& f) {
     ADVERTISE(VectorBIONJ,          "BIONJ-V", "Vectorized BIONJ (Gascuel, Cong [2009])");
     #endif
 
-    ADVERTISE(UPGMA_Matrix<NJFloat>,"UPGMA",   "UPGMA (Sokal, Michener [1958])");
+    //ADVERTISE(UPGMA_Matrix<NJFloat>,"UPGMA",   "UPGMA (Sokal, Michener [1958])");
 
     #if USE_VECTORCLASS_LIBRARY
-    ADVERTISE(VectorizedUPGMA_Matrix<NJFloat>, "UPGMA-V", "Vectorized UPGMA (Sokal, Michener [1958])");
+    //ADVERTISE(VectorizedUPGMA_Matrix<NJFloat>, "UPGMA-V", "Vectorized UPGMA (Sokal, Michener [1958])");
     #endif
 
     ADVERTISE(BoundingMatrix<double>,"NJ-R-D", "Double precision Rapid Neighbour Joining");
