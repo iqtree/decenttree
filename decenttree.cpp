@@ -96,7 +96,8 @@ namespace {
 
 /** Show a banner for decentTree */
 void showBanner() {
-    std::cout << "\ndecentTree for " << getOSName() << "\n";
+    std::cout << "\ndecentTree v" << decenttree_VERSION_MAJOR << "." << decenttree_VERSION_MINOR
+            << decenttree_VERSION_PATCH << " for " << getOSName() << "\n";
     std::cout << "Based on algorithms (UPGMA, NJ, BIONJ) proposed by Sokal & Michener [1958],\n";
     std::cout << "Saitou & Nei [1987], Gascuel [1997] and [2009]\n";
     std::cout << "Incorporating (in NJ-R and BIONJ-R) techniques proposed by Simonson, Mailund, and Pedersen [2011]\n";
