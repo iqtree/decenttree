@@ -1,46 +1,54 @@
-<h1>decenttree</h1>
-<h2>Introduction</h2>
-decenttree is a cross-platform C++ library, and stand-alone 
-command-line application, for generating phylogenetic trees 
-(in newick format) from distance matrices (supplied in 
-phylip distance matrix formats), or alignments 
-(supplied in fasta format), using well-known algorithms, 
-such as 
+DecentTree
+==========
 
-  * Neighbour Joining
-  * BIONJ
-  * UPGMA
+Introduction
+------------
 
-The distance matrix tree construction implementations in decenttree were originally
-developed as part of the IQTree2 application (formerly IQTree used a single-threaded
-implementation of BIONJ to generate initial phylogenetic trees; scaling issues meant 
-that was a performance bottleneck for generating phylogenetic trees for Covid-19 alignments,
-with more than a few thousand sequences. The classes in decenttree were developed to
-remove the bottleneck).
+DecentTree is a cross-platform command-line program and also a C++ library for 
+inferring phylogenetic trees (in newick format) from distance matrices (supplied in 
+phylip distance matrix formats), or alignments (supplied in fasta format), 
+using well-known algorithms, such as Neighbour Joining, BIONJ and UPGMA.
 
-<h2>Key Features</h2>
-The decenttree program implements multiple distance matrix 
-phylogenetic inference algorithms, in C++:
+If you use DecentTree in a publication, please cite:
+
+> W. Wang, J. Barbetti, T.K.F Wong, B. Thornlow, R. Corbett-Detig, Y. Turakhia, 
+  R. Lanfear, B.Q. Minh (2023) DecentTree: scalable Neighbour-Joining for the genomic era.
+  _Bioinformatics_, 39, btad536.
+  <https://doi.org/10.1093/bioinformatics/btad536>
+
+The distance-based tree reconstruction in DecentTree was originally derived 
+from IQ-TREE2 and and then optimized and parallelized for large datasets with 
+more than 10,000 sequences.
+
+Key Features
+------------
+
+DecentTree implements several distance-based phylogenetic algorithms:
 
  * UPGMA (Sokal and Michener, 1958), 
  * Neighbor Joining (or NJ) (Saitou and Nei 1987), 
  * BioNJ (Gascuel, 1997), and 
  * Unweighted NJ (or UNJ) (Gascuel 2002).  
 
-The decenttree folder includes vectorized versions of NJ, BIONJ, and UNJ. It also 
+It includes vectorized versions of NJ, BIONJ, and UNJ. It also 
 includes optimized versions of UPGMA, NJ and BIONJ, all of which use the 
-same branch-and-bound techniques as RapidNJ (Simonsen, et al., 2008). All 
+same techniques as RapidNJ (Simonsen, et al., 2008). All 
 the algorithms are implemented in header files, as template classes, allowing the caller 
 to choose between single or double precision, all implement a standard interface, accepting either 
 Phylip distance matrix files or in-memory matrices, and all are parallelized using OpenMP.  
 
-The vectorized versions make use of Agner Fog’s VectorClass library (https://www.agner.org/optimize/vectorclass.pdf). The command-line application allows the caller to select the algorithm and thread count.  The decenttree application also makes use of custom vectorized sequence comparison functions (which also available via headers), that are called in parallel, to calculate distance matrices.
+The vectorized versions make use of the [VectorClass library](https://github.com/vectorclass/version2). 
+The command-line application allows users to select the algorithm and thread count. 
+DecentTree also makes use of custom vectorized sequence comparison functions (which also available 
+via headers), that are called in parallel, to calculate distance matrices.
 
 The (header only) template classes can be used in other projects.
 (For full functionality it will be necessary to link with OpenMP - for parallelization - and 
 compile with Agner Fog's VectorClass library - for vectorization).
 
-<h2>More Detailed Information</h2>
+More Detailed Information
+-------------------------
+
 For additional documentation, see:
 
 - [Installation](doco/Installation.md)
@@ -50,9 +58,10 @@ For additional documentation, see:
 - [Code Examples](doco/Code_Examples.md)
 - [Running DecentTree](doco/Running_DecentTree.md)
 
-<h2>Acknowledgements and references</h2>
+Acknowledgements and references
+-------------------------------
 
-<h3>Distance Matrix Algorithms</h3>
+### Distance Matrix Algorithms
 
 - UPGMA_Matrix, used for Unweighted Neighbor Joining is an implementation 
   of the UPGMA algorithm of "Evaluating Systematic Relationships",
@@ -83,10 +92,10 @@ For additional documentation, see:
         Springer Verlag, 2011.
   See: https://birc.au.dk/software/rapidnj/.
 
-<h3>Other components</h3>
+### Other components
 
 - LLVM's OpenMP library is used for parallelization
-  (if decenttree is built with a compiler than has Open MP support).
+  (if DecentTree is built with a compiler than has Open MP support).
   (The omp.h header, based on that of LLVM, is included to deal with 
    compilation issues that sometims arise when building on Macintosh)
 - Agner Fog's vectorclass library is used for vectorization 
@@ -94,7 +103,7 @@ For additional documentation, see:
    VectorNJ, VectorBIONJ and VectorizedUPGMA_Matrix template classes).
    See: https://github.com/vectorclass.
 - zlib (https://zlib.net) is a free library of compression algorithms.
-  (decenttree is built with version 1.2.7).
+  (DecentTree is built with version 1.2.7).
 - gzstream, C++ iostream classes wrapping the zlib compression library.
   Copyright (C) 2001  Deepak Bandyopadhyay, Lutz Kettner
 - The heapsort algorithm implemented in parallel_heapsort.h, is loosely 
@@ -107,8 +116,8 @@ For additional documentation, see:
   "The Art of Computer Programming", by Donald E. Knuth
   (only the rational arithmetic used to split partitions evenly
    is original).
-- The timing functions in timeutil.h were originally developed for IQTree2.
+- The timing functions in timeutil.h were originally developed for IQ-TREE2.
   See: https://github.com/iqtree/iqtree2.
 - The progress bar functionality in progress.h and progess.cpp was
-  originally developed for IQTree2 See: https://github.com/iqtree/iqtree2.
+  originally developed for IQ-TREE. See: https://github.com/iqtree/iqtree2.
   
